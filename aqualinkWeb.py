@@ -12,12 +12,11 @@ from aqualinkConf import *
 ########################################################################################################
 class WebThread(threading.Thread):
     # constructor
-    def __init__(self, state, httpPort, thePool, thePanel):
+    def __init__(self, state, httpPort, thePool):
         threading.Thread.__init__(self, target=self.webServer)
         self.state = state
         self.httpPort = httpPort
         self.pool = thePool
-        self.panel = thePanel
 
     # web server loop
     def webServer(self):
@@ -62,27 +61,19 @@ class WebThread(threading.Thread):
                     response = httpHeader(self.pool.title, len(html)) + html
                 else:
                     if path == "/spaon":
-                        sequence = self.panel.spaOn
-                        if self.panel.displayMode != "main":
-                            sequence = self.panel.main + sequence
-                        actionThread = ActionThread("SpaOn", sequence, self.state, self.panel)
-                        actionThread.start()
+                        self.pool.spaOn()
                         response = httpHeader(self.pool.title)
                     elif path == "/spaoff":
-                        sequence = self.panel.spaOff
-                        if self.panel.displayMode != "main":
-                            sequence = self.panel.main + sequence
-                        actionThread = ActionThread("SpaOff", sequence, self.state, self.panel)
-                        actionThread.start()
+                        self.pool.spaOff()
                         response = httpHeader(self.pool.title)
-                    elif path == "/main":
-                        actionThread = ActionThread("Main", self.panel.main, self.state, self.panel)
-                        actionThread.start()
-                        response = httpHeader(self.pool.title)
-                    elif path == "/back":
-                        actionThread = ActionThread("Back", self.panel.back, self.state, self.panel)
-                        actionThread.start()
-                        response = httpHeader(self.pool.title)
+#                    elif path == "/main":
+#                        actionThread = ActionThread("Main", self.panel.main, self.state, self.panel)
+#                        actionThread.start()
+#                        response = httpHeader(self.pool.title)
+#                    elif path == "/back":
+#                        actionThread = ActionThread("Back", self.panel.back, self.state, self.panel)
+#                        actionThread.start()
+#                        response = httpHeader(self.pool.title)
                     else:
                         response = httpHeader(self.pool.title, "404 Not Found")                    
                 ns.sendall(response)

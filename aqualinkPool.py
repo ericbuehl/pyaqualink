@@ -5,13 +5,15 @@ import struct, sys, time, threading
 
 from debugUtils import *
 from aqualinkConf import *
+from aqualinkInterface import *
+from aqualinkPanel import *
 
 ########################################################################################################
 # state of the pool and equipment
 ########################################################################################################
 class Pool:
     # constructor
-    def __init__(self):
+    def __init__(self, theState):
         self.title = ""
         self.date = ""
         self.time = ""
@@ -35,6 +37,19 @@ class Pool:
         self.poolLight = False
         self.spaLight = False
 
+        self.state = theState
+        self.panel = Panel(theState, self)
+
+    def start(self):
+        readThread = ReadThread(self.state, serialDevice, panelAddress, self, self.panel)
+        readThread.start()
+
+    def spaOn(self):
+        self.panel.spaOn()
+
+    def spaOff(self):
+        self.panel.spaOff()
+
     def printState(self, delim="\n"):
         msg  = "Title:      "+self.title+delim
         msg += "Date:       "+self.date+delim
@@ -53,4 +68,33 @@ class Pool:
     def printEquipmentState(self, equipment):
         return "ON" if equipment else "OFF"
                     
+########################################################################################################
+# message reading thread
+########################################################################################################
+class ReadThread(threading.Thread):
+    # constructor
+    def __init__(self, state, serialDevice, theAddr, thePool, thePanel):
+        threading.Thread.__init__(self, target=self.readData)
+        self.state = state
+        self.pool = thePool
+        self.panel = thePanel
+        self.interface = Interface(serialDevice)
+        self.addr = theAddr
+        self.lastDest = '\x00'
+        
+    # data reading loop
+    def readData(self):
+        if debug: log("starting read thread")
+        while self.state.running:
+            if not self.state.running: break
+            (dest, command, args) = self.interface.readMsg()
+            if (dest == self.addr):# or (self.lastDest == self.addr): # messages that are related to this device
+                if not monitorMode:                                 # send ACK if not passively monitoring
+                    self.interface.sendMsg(masterAddress, cmdAck, ['\x8b', self.panel.button])
+                    self.panel.button = btnNone
+                self.panel.parseMsg(command, args)
+            self.lastDest = dest
+        del(self.interface)
+        if debug: log("terminating read thread")
+
 

@@ -295,6 +295,20 @@ class Panel:
         self.hilitedStart = start
         self.hilitedEnd = end
 
+    def spaOn(self):
+        sequence = self.spaOn
+        if self.displayMode != "main":
+            sequence = self.main + sequence
+        actionThread = ActionThread("SpaOn", sequence, self.state, self)
+        actionThread.start()
+
+    def spaOff(self):
+        sequence = self.spaOff
+        if self.displayMode != "main":
+            sequence = self.main + sequence
+        actionThread = ActionThread("SpaOff", sequence, self.state, self)
+        actionThread.start()
+
 ########################################################################################################
 # display analysis thread
 ########################################################################################################
