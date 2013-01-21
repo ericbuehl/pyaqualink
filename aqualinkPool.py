@@ -91,7 +91,7 @@ class ReadThread(threading.Thread):
             if (dest == self.addr):# or (self.lastDest == self.addr): # messages that are related to this device
                 if not monitorMode:                                 # send ACK if not passively monitoring
                     self.interface.sendMsg(masterAddress, cmdAck, ['\x8b', self.panel.button])
-                    self.panel.button = btnNone
+                    self.panel.button = '\x00'  # fixme
                 self.panel.parseMsg(command, args)
             self.lastDest = dest
         del(self.interface)
