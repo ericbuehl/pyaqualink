@@ -3,14 +3,10 @@
 
 import sys
 import time
-import threading
 
 from debugUtils import *
-from webUtils import *
 from aqualinkConf import *
 from aqualinkPool import *
-from aqualinkInterface import *
-from aqualinkPanel import *
 from aqualinkWeb import *
 
 ########################################################################################################
@@ -28,15 +24,11 @@ if __name__ == "__main__":
     theState = State()
     try:
         thePool = Pool(theState)
-        thePool.start()
-        webThread = WebThread(theState, httpPort, thePool)
-        webThread.start()
+        theUI = WebUI(theState, thePool)
         while True:
             time.sleep(30)
     except KeyboardInterrupt:
         theState.running = False
-        for action in thePanel.actions:
-            action.set()
         time.sleep(1)
         sys.exit(0)
 

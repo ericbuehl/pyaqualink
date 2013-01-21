@@ -1,4 +1,6 @@
-import inspect, struct, string, time
+import inspect
+import struct
+import time
 
 from aqualinkConf import *
 ######################################################################################

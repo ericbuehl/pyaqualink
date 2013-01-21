@@ -1,11 +1,21 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys, time, threading, socket, select
+import threading
+import socket
+import select
 
 from debugUtils import *
 from webUtils import *
 from aqualinkConf import *
+
+class WebUI:
+    # constructor
+    def __init__(self, theState, thePool):
+        self.state = theState
+        self.pool = thePool
+        webThread = WebThread(theState, httpPort, thePool)
+        webThread.start()
 
 ########################################################################################################
 # web server thread

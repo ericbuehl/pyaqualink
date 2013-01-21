@@ -1,7 +1,8 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import serial, struct
+import serial
+import struct
 
 from debugUtils import *
 from aqualinkConf import *

@@ -1,7 +1,9 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import struct, time, threading
+import struct
+import time
+import threading
 
 from debugUtils import *
 from aqualinkConf import *
@@ -115,6 +117,8 @@ class Panel:
     def __init__(self, theState, thePool):
         self.state = theState
         self.pool = thePool
+        self.interface = thePool.interface
+        self.addr = panelAddress
 
         # display state
         self.displayLines = ["", "", "", "", "", "", "", "", "", "", "", ""]
@@ -160,7 +164,14 @@ class Panel:
         # start the thread that analyzes the display
         displayThread = DisplayThread(2, self)
         displayThread.start()
-    
+
+    def readMsg(self):
+        return self.interface.readMsg()
+        
+    def sendAck(self):
+        self.interface.sendMsg(masterAddress, cmdAck, ['\x8b', self.button])
+        self.button = btnNone
+        
     # parse a message and perform commands    
     def parseMsg(self, command, args):
         try:
