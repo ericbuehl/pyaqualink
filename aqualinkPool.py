@@ -5,7 +5,6 @@ import time
 import threading
 
 from debugUtils import *
-from aqualinkConf import *
 from aqualinkInterface import *
 from aqualinkPanel import *
 
@@ -14,7 +13,7 @@ from aqualinkPanel import *
 ########################################################################################################
 class Pool:
     # constructor
-    def __init__(self, theState):
+    def __init__(self, theState, serialDevice, panelAddr):
         self.state = theState
 
         # identity
@@ -43,8 +42,8 @@ class Pool:
 
         # initiate interface and panels
         self.interface = Interface(serialDevice)
-        self.panel = Panel(theState, self)
-        panels = {panelAddr, self.panel}
+        self.panel = OneTouchPanel(theState, self)
+        self.panels = {panelAddr:self.panel}
 
         readThread = ReadThread(self.state, self)
         readThread.start()
@@ -82,7 +81,6 @@ class ReadThread(threading.Thread):
         threading.Thread.__init__(self, target=self.readData)
         self.state = theState
         self.pool = thePool
-        self.panel = thePool.panel
         self.lastDest = '\x00'
         
     # data reading loop
@@ -92,14 +90,14 @@ class ReadThread(threading.Thread):
             if not self.state.running: break
             (dest, command, args) = self.pool.interface.readMsg()
 #            if (dest == self.panel.addr):# or (self.lastDest == self.panel.addr): # messages that are related to this device
-            try:
-                if not monitorMode:                                 # send ACK if not passively monitoring
-                    self.pool.interface.sendMsg(self.panels[dest].getAck())
-                self.panels[dest].parseMsg(command, args)
-            except:
+            try:                         # messages that are related to this device
+                if not monitorMode:      # send ACK if not passively monitoring
+                    self.pool.interface.sendMsg(self.pool.panels[dest].getAck())
+                self.pool.panels[dest].parseMsg(command, args)
+            except:                      # ignore other messages
                 pass
 #            self.lastDest = dest
-        for panel in self.panels:   # force all pending events to complete
+        for panel in self.pool.panels.values():   # force all pending events to complete
             for event in panel.events:
                 event.set()
         if debug: log("terminating read thread")

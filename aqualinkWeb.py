@@ -7,11 +7,13 @@ import select
 
 from debugUtils import *
 from webUtils import *
-from aqualinkConf import *
 
+########################################################################################################
+# web UI
+########################################################################################################
 class WebUI:
     # constructor
-    def __init__(self, theState, thePool):
+    def __init__(self, theState, thePool, httpPort=80):
         self.state = theState
         self.pool = thePool
         webThread = WebThread(theState, httpPort, thePool)

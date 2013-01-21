@@ -6,13 +6,82 @@ import time
 import threading
 
 from debugUtils import *
-from aqualinkConf import *
+
+########################################################################################################
+# Base Aqualink panel panel
+########################################################################################################
+masterAddr = '\x00'          # address of Aqualink controller
 
 # commands
 cmdProbe = '\x00'
 cmdAck = '\x01'
 cmdStatus = '\x02'
 cmdMsg = '\x03'
+
+class Panel:
+    """
+    Base Aqualink control Panel
+    """
+    
+    # constructor
+    def __init__(self, theState, thePool):
+        self.state = theState
+        self.pool = thePool
+        self.interface = thePool.interface
+
+        # state
+        self.ack = '\x00'       # first byte of ack message
+        self.button = '\x00'    # current button pressed
+        self.lastAck = '\x00\x00'
+        self.lastStatus = '\x00\x00\x00\x00\x00'
+
+        # command parsing
+        self.commandTable =  {cmdProbe: Panel.handleProbe,
+                        cmdAck: Panel.handleAck,
+                        cmdStatus: Panel.handleStatus}
+                        
+    # return the ack message for this panel        
+    def getAck(self):
+        args = self.ack+self.button
+        self.button = btnNone
+        return (masterAddr, cmdAck, args)
+        
+    # parse a message and perform commands    
+    def parseMsg(self, command, args):
+        try:
+            self.commandTable[command](self, args)
+        except KeyError:
+            if debug: log("unknown", printHex(command), printHex(args))
+
+    # probe command           
+    def handleProbe(self, args):
+        if debug: log("probe  ")
+
+    # ack command
+    def handleAck(self, args):
+        if args != self.lastAck:       # only display changed values
+            self.lastAck = args
+            if debug: log("ack    ", printHex(args[0]), btnNames[args[1]])
+
+    # status command
+    def handleStatus(self, args):
+        if args != self.lastStatus:    # only display changed values
+            self.lastStatus = args
+            if debug: log("status ", printHex(args))
+
+    # message command
+    def handleMsg(self, args):
+        msg = "".join(args).lstrip(" ").rstrip(" ")
+        if debug: log("msg    ", msg)
+
+########################################################################################################
+# One Touch panel
+########################################################################################################
+# addressing
+baseAddr = '\x40'
+maxDevices = 4
+
+# commands
 cmdLongMsg = '\x04'
 cmdHilite = '\x08'  # highlight (invert) the specified line
 cmdClear = '\x09'   # clear the display
@@ -38,7 +107,7 @@ btnNames = {btnNone: "none",
             
 degree = '\x60'
 
-class Panel:
+class OneTouchPanel(Panel):
     """ 
     Aqualink One Touch Control Panel
 
@@ -115,9 +184,7 @@ class Panel:
     """
     # constructor
     def __init__(self, theState, thePool):
-        self.state = theState
-        self.pool = thePool
-        self.interface = thePool.interface
+        Panel.__init__(self, theState, thePool)
 
         # display state
         self.displayLines = ["", "", "", "", "", "", "", "", "", "", "", ""]
@@ -126,20 +193,14 @@ class Panel:
         self.hilitedEnd = -1
         self.displayMode = ""
 
-        # button state
-        self.button = '\x00'
+        # state
+        self.ack = '\x8b'   # first byte of ack message
 
         # command parsing
-        self.dtable =  {cmdProbe: Panel.handleProbe,
-                        cmdAck: Panel.handleAck,
-                        cmdStatus: Panel.handleStatus,
-                        cmdMsg: Panel.handleMsg,
-                        cmdLongMsg: Panel.handleLongMsg,
-                        cmdHilite: Panel.handleHilite,
-                        cmdClear: Panel.handleClear,
-                        cmdHiField: Panel.handleHiField}
-        self.ack = ['\x00\x00']
-        self.status = ['\x00\x00\x00\x00\x00']
+        self.commandTable.update({cmdLongMsg: OneTouchPanel.handleLongMsg,
+                            cmdHilite: OneTouchPanel.handleHilite,
+                            cmdClear: OneTouchPanel.handleClear,
+                            cmdHiField: OneTouchPanel.handleHiField})
 
         # action events
         self.displayEvent = threading.Event()   # a display line has been updated
@@ -163,44 +224,6 @@ class Panel:
         # start the thread that analyzes the display
         displayThread = DisplayThread(2, self)
         displayThread.start()
-
-#    def readMsg(self):
-#        return self.interface.readMsg()
-
-    # return the ack message for this panel        
-    def getAck(self):
-        args = '\x8b'+self.button
-        self.button = btnNone
-        return (masterAddr, cmdAck, args)
-        
-    # parse a message and perform commands    
-    def parseMsg(self, command, args):
-        try:
-            self.dtable[command](self, args)
-        except KeyError:
-            if debug: log("unknown", printHex(command), printHex(args))
-
-    # probe command           
-    def handleProbe(self, args):
-        if debug: log("probe  ")
-
-    # ack command
-    def handleAck(self, args):
-        if args != self.ack:       # only display changed values
-            self.ack = args
-            button = args[1]
-            if debug: log("ack    ", printHex(args[0]), btnNames[button])
-
-    # status command
-    def handleStatus(self, args):
-        if args != self.status:    # only display changed values
-            self.status = args
-            if debug: log("status ", printHex(args))
-
-    # message command
-    def handleMsg(self, args):
-        msg = "".join(args).lstrip(" ").rstrip(" ")
-        if debug: log("msg    ", msg)
 
     # long message command
     def handleLongMsg(self, args):
@@ -320,6 +343,18 @@ class Panel:
             sequence = self.main + sequence
         actionThread = ActionThread("SpaOff", sequence, self.state, self)
         actionThread.start()
+
+########################################################################################################
+# SpaLink panel
+########################################################################################################
+# addressing
+baseAddr = '\x20'
+maxDevices = 3
+
+class SpaLinkPanel(Panel):
+    # constructor
+    def __init__(self, theState, thePool):
+        Panel.__init__(self, theState, thePool)
 
 ########################################################################################################
 # display analysis thread
