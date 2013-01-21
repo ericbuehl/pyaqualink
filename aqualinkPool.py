@@ -15,6 +15,9 @@ from aqualinkPanel import *
 class Pool:
     # constructor
     def __init__(self, theState):
+        self.state = theState
+
+        # identity
         self.title = ""
         self.date = ""
         self.time = ""
@@ -38,9 +41,10 @@ class Pool:
         self.poolLight = False
         self.spaLight = False
 
-        self.state = theState
+        # initiate interface and panels
         self.interface = Interface(serialDevice)
         self.panel = Panel(theState, self)
+        panels = {panelAddr, self.panel}
 
         readThread = ReadThread(self.state, self)
         readThread.start()
@@ -86,15 +90,17 @@ class ReadThread(threading.Thread):
         if debug: log("starting read thread")
         while self.state.running:
             if not self.state.running: break
-            (dest, command, args) = self.panel.readMsg()
-            if (dest == self.panel.addr):# or (self.lastDest == self.panel.addr): # messages that are related to this device
+            (dest, command, args) = self.pool.interface.readMsg()
+#            if (dest == self.panel.addr):# or (self.lastDest == self.panel.addr): # messages that are related to this device
+            try:
                 if not monitorMode:                                 # send ACK if not passively monitoring
-                    self.panel.sendAck()
-                self.panel.parseMsg(command, args)
-            self.lastDest = dest
-        for action in self.panel.actions:
-            action.set()
-#        del(self.interface)
+                    self.pool.interface.sendMsg(self.panels[dest].getAck())
+                self.panels[dest].parseMsg(command, args)
+            except:
+                pass
+#            self.lastDest = dest
+        for panel in self.panels:   # force all pending events to complete
+            for event in panel.events:
+                event.set()
         if debug: log("terminating read thread")
-
 

@@ -118,7 +118,6 @@ class Panel:
         self.state = theState
         self.pool = thePool
         self.interface = thePool.interface
-        self.addr = panelAddress
 
         # display state
         self.displayLines = ["", "", "", "", "", "", "", "", "", "", "", ""]
@@ -147,7 +146,7 @@ class Panel:
         self.hiliteEvent = threading.Event()    # a display line has been highlighted
         self.spaOnEvent = threading.Event()     # the spa has been turned on
         self.spaOffEvent = threading.Event()    # the spa has been turned off
-        self.actions = [self.displayEvent, self.hiliteEvent, self.spaOnEvent, self.spaOffEvent]
+        self.events = [self.displayEvent, self.hiliteEvent, self.spaOnEvent, self.spaOffEvent]
 
         # button sequences
         self.spaOn = [(btnDown, self.hiliteEvent),
@@ -165,12 +164,14 @@ class Panel:
         displayThread = DisplayThread(2, self)
         displayThread.start()
 
-    def readMsg(self):
-        return self.interface.readMsg()
-        
-    def sendAck(self):
-        self.interface.sendMsg(masterAddress, cmdAck, ['\x8b', self.button])
+#    def readMsg(self):
+#        return self.interface.readMsg()
+
+    # return the ack message for this panel        
+    def getAck(self):
+        args = '\x8b'+self.button
         self.button = btnNone
+        return (masterAddr, cmdAck, args)
         
     # parse a message and perform commands    
     def parseMsg(self, command, args):

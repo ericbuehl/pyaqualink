@@ -47,26 +47,25 @@ class Interface:
             checksum = self.msg[-3:-2]
             dleetx = self.msg[-2:]
             self.msg = ""
-            if struct.pack("!B", self.checksum(dlestx+dest+command+args)) == checksum:
+            if self.checksum(dlestx+dest+command+args) == checksum:
                 if debugData: log("-->", printHex(dlestx), printHex(dest), printHex(command), printHex(args), printHex(checksum), printHex(dleetx))
                 return (dest, command, args)
             else:
                 if debugData: log("-->", printHex(dlestx), printHex(dest), printHex(command), printHex(args), printHex(checksum), printHex(dleetx), "*bad checksum*")
 
     # send a message
-    def sendMsg(self, addr, command, args):
-        bytes = [DLE, STX, addr, command] + args
-        bytes = bytes + [struct.pack("!B", self.checksum(bytes)), DLE, ETX]
-        for i in range(2,len(bytes)-2):   # if a byte in the message has the value of DLE, add a NUL after it to escape it
-            if bytes[i] == DLE:
-                bytes = bytes[0:i+1] + NUL + bytes[i+1:]
-        msg = "".join(bytes)
+    def sendMsg(self, (dest, command, args)):
+        msg = DLE+STX+dest+command+args
+        msg = msg+self.checksum(msg)+DLE+ETX
+        for i in range(2,len(msg)-2):   # if a byte in the message has the value of DLE, add a NUL after it to escape it
+            if msg[i] == DLE:
+                msg = msg[0:i+1]+NUL+msg[i+1:]
         if debugData: log("<--", printHex(msg[0:2]), printHex(msg[2:3]), printHex(msg[3:4]), printHex(msg[4:-3]), printHex(msg[-3:-2]), printHex(msg[-2:]))
         n = self.port.write(msg)
 
     # compute checksum                
-    def checksum(self, bytes):
-        return reduce(lambda x,y:x+y, map(ord, bytes)) % 256
+    def checksum(self, msg):
+        return struct.pack("!B", reduce(lambda x,y:x+y, map(ord, msg)) % 256)
 
     # destructor
     def __del__(self):
