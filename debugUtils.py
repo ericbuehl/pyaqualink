@@ -1,5 +1,6 @@
 import inspect, struct, string, time
-from aqualink import *
+
+from aqualinkConf import *
 ######################################################################################
 # utility functions
 ######################################################################################
@@ -36,7 +37,7 @@ class LogFile:
             logFile.close()
 
 def log(*args):
-    if logging:
+    if logFileName != "":
         message = ""
         for arg in args:
             message += arg.__str__()+" "

@@ -1,7 +1,6 @@
 ##################################################################
 # configuration
 ##################################################################
-logging = True
 logFileName = "aqualink.log"
 debug = True
 debugData = False
