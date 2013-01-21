@@ -1,16 +1,22 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import serial, struct, sys, time, threading, socket, select
+import serial
+import struct
+import sys
+import time
+import threading
+import socket
+import select
+
 from webUtils import *
 from debugUtils import *
 from aqualinkConf import *
 
-########################################################################################################
-# state of the pool and equipment
-########################################################################################################
 class Pool:
-    # constructor
+    """
+    state of the pool and equipment
+    """
     def __init__(self):
         self.title = ""
         self.date = ""
