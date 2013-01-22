@@ -11,7 +11,6 @@ from aqualinkConf import *
 ########################################################################################################
 # Base Aqualink control panel
 ########################################################################################################
-masterAddr = '\x00'          # address of Aqualink controller
 
 # commands
 cmdProbe = '\x00'
@@ -32,7 +31,6 @@ class Panel:
         self.name = theName
         self.state = theState
         self.pool = thePool
-        self.interface = thePool.interface
 
         # state
         self.ack = '\x00'       # first byte of ack message
@@ -51,10 +49,10 @@ class Panel:
         self.events = [self.statusEvent]
         
     # return the ack message for this panel        
-    def getAck(self):
+    def getAckMsg(self):
         args = self.ack+self.button
         self.button = btnNone
-        return (masterAddr, cmdAck, args)
+        return (cmdAck, args)
         
     # parse a message and perform commands    
     def parseMsg(self, command, args):

@@ -3,6 +3,7 @@
 
 import serial
 import struct
+import threading
 
 from debugUtils import *
 from aqualinkConf import *
@@ -16,10 +17,14 @@ DLE = '\x10'
 STX = '\x02'
 ETX = '\x03'
 
+masterAddr = '\x00'          # address of Aqualink controller
+
 class Interface:
     # constructor
-    def __init__(self, theName, serialDevice):
+    def __init__(self, theName, theState, serialDevice, thePool):
         self.name = theName
+        self.state = theState
+        self.pool = thePool
         if debugData: log(self.name, "opening serial port", serialDevice)
         self.port = serial.Serial(serialDevice, baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
         self.msg = "\x00\x00"
@@ -30,6 +35,8 @@ class Interface:
             if debugRaw: self.debugRaw(self.msg[-1])
         self.msg = self.msg[-2:]
         if debugData: log(self.name, "synchronized")
+        readThread = ReadThread("Read:    ", self.state, self.pool)
+        readThread.start()
           
     # read the next message
     def readMsg(self):
@@ -88,4 +95,34 @@ class Interface:
     def __del__(self):
         self.port.close()
                 
+########################################################################################################
+# message reading thread
+########################################################################################################
+class ReadThread(threading.Thread):
+    # constructor
+    def __init__(self, theName, theState, thePool):
+        threading.Thread.__init__(self, target=self.readData)
+        self.name = theName
+        self.state = theState
+        self.pool = thePool
+        self.lastDest = '\xff'
+        
+    # data reading loop
+    def readData(self):
+        if debug: log(self.name, "starting read thread")
+        while self.state.running:
+            if not self.state.running: break
+            (dest, command, args) = self.pool.interface.readMsg()
+            try:                         # handle messages that are addressed to these panels
+                if not monitorMode:      # send ACK if not passively monitoring
+                    self.pool.interface.sendMsg((masterAddr,) + self.pool.panels[dest].getAckMsg())
+                self.pool.panels[dest].parseMsg(command, args)
+                self.lastDest = dest
+            except KeyError:                      # ignore other messages except...
+                if (dest == masterAddr) and (self.lastDest in self.pool.panels.keys()): # ack messages to controller that are from the panels
+                    self.pool.master.parseMsg(command, args)
+        for panel in self.pool.panels.values():   # force all pending events to complete
+            for event in panel.events:
+                event.set()
+        if debug: log(self.name, "terminating read thread")
 

@@ -2,7 +2,6 @@
 # coding=utf-8
 
 import time
-import threading
 
 from debugUtils import *
 from aqualinkConf import *
@@ -45,15 +44,12 @@ class Pool:
         self.spaLight = False
 
         # initiate interface and panels
-        self.interface = Interface("Serial:  ", serialDevice)
-        self.master = Panel("Master:  ", theState, self)
-        self.oneTouchPanel = OneTouchPanel("OneTouch:", theState, self)
-        self.spaLinkPanel = SpaLinkPanel("SpaLink: ", theState, self)
+        self.master = Panel("Master:  ", self.state, self)
+        self.oneTouchPanel = OneTouchPanel("OneTouch:", self.state, self)
+        self.spaLinkPanel = SpaLinkPanel("SpaLink: ", self.state, self)
         self.panels = {oneTouchPanelAddr: self.oneTouchPanel,
                        spaLinkPanelAddr: self.spaLinkPanel}
-
-        readThread = ReadThread("Read:    ", self.state, self)
-        readThread.start()
+        self.interface = Interface("Serial:  ", self.state, serialDevice, self)
 
     def spaOn(self):
         self.oneTouchPanel.spaOn()
@@ -85,34 +81,3 @@ class Pool:
     def printEquipmentState(self, equipment):
         return "ON" if equipment else "OFF"
                     
-########################################################################################################
-# message reading thread
-########################################################################################################
-class ReadThread(threading.Thread):
-    # constructor
-    def __init__(self, theName, theState, thePool):
-        threading.Thread.__init__(self, target=self.readData)
-        self.name = theName
-        self.state = theState
-        self.pool = thePool
-        self.lastDest = '\x00'
-        
-    # data reading loop
-    def readData(self):
-        if debug: log(self.name, "starting read thread")
-        while self.state.running:
-            if not self.state.running: break
-            (dest, command, args) = self.pool.interface.readMsg()
-            try:                         # handle messages that are addressed to these devices
-                if not monitorMode:      # send ACK if not passively monitoring
-                    self.pool.interface.sendMsg(self.pool.panels[dest].getAck())
-                self.pool.panels[dest].parseMsg(command, args)
-                self.lastDest = dest
-            except KeyError:                      # ignore other messages except...
-                if (dest == '\x00') and (self.lastDest in self.pool.panels.keys()): # ack messages to controller that are from the panels
-                    self.pool.master.parseMsg(command, args)
-        for panel in self.pool.panels.values():   # force all pending events to complete
-            for event in panel.events:
-                event.set()
-        if debug: log(self.name, "terminating read thread")
-
