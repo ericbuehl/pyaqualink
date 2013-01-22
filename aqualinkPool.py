@@ -52,10 +52,12 @@ class Pool:
         self.interface = Interface("Serial:  ", self.state, serialDevice, self)
 
     def spaOn(self):
-        self.oneTouchPanel.spaOn()
+        if not self.spa:
+            self.spaLinkPanel.spaMode()
 
     def spaOff(self):
-        self.oneTouchPanel.spaOff()
+        if self.spa:
+            self.spaLinkPanel.spaMode()
 
     def lightsOn(self):
         self.spaLinkPanel.LightsOn()
