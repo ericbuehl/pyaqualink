@@ -68,7 +68,7 @@ class Panel:
     def handleAck(self, args):
         if args != self.lastAck:       # only display changed values
             self.lastAck = args
-#            if debug: log(self.name, "ack    ", printHex(args[0]), btnNames[args[1]])
+#            if debug: log(self.name, "ack    ", printHex(args))
 
     # status command
     def handleStatus(self, args):
@@ -437,24 +437,36 @@ class SpaLinkPanel(Panel):
             
         # button sequences
         self.poolLightOnSeq = [(btn6, self.statusEvent)]
-        self.poolLightOffSeq = [(btn6, self.statusEvent)]
         self.spaLightOnSeq = [(btn7, self.statusEvent)]
+        self.LightsOnSeq = [(btn6, self.statusEvent),
+                            (btn7, self.statusEvent)]
+        self.poolLightOffSeq = [(btn6, self.statusEvent)]
         self.spaLightOffSeq = [(btn7, self.statusEvent)]
+        self.LightsOffSeq = [(btn6, self.statusEvent),
+                            (btn7, self.statusEvent)]
 
     def poolLightOn(self):
         actionThread = ActionThread("PoolLightOn", self.poolLightOnSeq, self.state, self)
-        actionThread.start()
-
-    def poolLightOff(self):
-        actionThread = ActionThread("PoolLightOff", self.poolLightOffSeq, self.state, self)
         actionThread.start()
 
     def spaLightOn(self):
         actionThread = ActionThread("SpaLightOn", self.spaLightOnSeq, self.state, self)
         actionThread.start()
 
+    def LightsOn(self):
+        actionThread = ActionThread("LightsOn", self.LightsOnSeq, self.state, self)
+        actionThread.start()
+
+    def poolLightOff(self):
+        actionThread = ActionThread("PoolLightOff", self.poolLightOffSeq, self.state, self)
+        actionThread.start()
+
     def spaLightOff(self):
         actionThread = ActionThread("SpaLightOff", self.spaLightOffSeq, self.state, self)
+        actionThread.start()
+
+    def LightsOff(self):
+        actionThread = ActionThread("LightsOff", self.LightsOffSeq, self.state, self)
         actionThread.start()
 
 

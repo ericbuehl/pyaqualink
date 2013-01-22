@@ -47,8 +47,7 @@ class Pool:
         self.master = Panel("Master:  ", theState, self)
         self.oneTouchPanel = OneTouchPanel("OneTouch:", theState, self)
         self.spaLinkPanel = SpaLinkPanel("SpaLink: ", theState, self)
-        self.panels = {'\x00': self.master,
-                       oneTouchPanelAddr: self.oneTouchPanel,
+        self.panels = {oneTouchPanelAddr: self.oneTouchPanel,
                        spaLinkPanelAddr: self.spaLinkPanel}
 
         readThread = ReadThread("Read:    ", self.state, self)
@@ -61,12 +60,10 @@ class Pool:
         self.oneTouchPanel.spaOff()
 
     def lightsOn(self):
-        self.spaLinkPanel.poolLightOn()
-        self.spaLinkPanel.spaLightOn()
+        self.spaLinkPanel.LightsOn()
 
     def lightsOff(self):
-        self.spaLinkPanel.poolLightOff()
-        self.spaLinkPanel.spaLightOff()
+        self.spaLinkPanel.LightsOff()
 
     def printState(self, delim="\n"):
         msg  = "Title:      "+self.title+delim
@@ -104,14 +101,14 @@ class ReadThread(threading.Thread):
         while self.state.running:
             if not self.state.running: break
             (dest, command, args) = self.pool.interface.readMsg()
-#            if (dest == self.panel.addr):# or (self.lastDest == self.panel.addr): # messages that are related to this device
             try:                         # messages that are related to this device
                 if not monitorMode:      # send ACK if not passively monitoring
                     self.pool.interface.sendMsg(self.pool.panels[dest].getAck())
                 self.pool.panels[dest].parseMsg(command, args)
-            except:                      # ignore other messages
-                pass
-#            self.lastDest = dest
+                self.lastDest = dest
+            except:                      # ignore other messages except...
+                if (dest == '\x00') and (self.lastDest in self.pool.panels.keys()): # ack messages to controller that are from the panels
+                    self.pool.master.parseMsg(command, args)
         for panel in self.pool.panels.values():   # force all pending events to complete
             for event in panel.events:
                 event.set()
