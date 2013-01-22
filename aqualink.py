@@ -23,8 +23,8 @@ class State:
 if __name__ == "__main__":
     theState = State()
     try:
-        thePool = Pool(theState, serialDevice, panelAddr)
-        webUI = WebUI(theState, thePool, httpPort)
+        thePool = Pool("Pool:    ", theState)
+        webUI = WebUI("WebUI:   ", theState, thePool)
         while True:
             time.sleep(30)
     except KeyboardInterrupt:

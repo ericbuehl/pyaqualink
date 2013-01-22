@@ -6,9 +6,10 @@ import time
 import threading
 
 from debugUtils import *
+from aqualinkConf import *
 
 ########################################################################################################
-# Base Aqualink panel panel
+# Base Aqualink control panel
 ########################################################################################################
 masterAddr = '\x00'          # address of Aqualink controller
 
@@ -24,7 +25,8 @@ class Panel:
     """
     
     # constructor
-    def __init__(self, theState, thePool):
+    def __init__(self, theName, theState, thePool):
+        self.name = theName
         self.state = theState
         self.pool = thePool
         self.interface = thePool.interface
@@ -32,14 +34,19 @@ class Panel:
         # state
         self.ack = '\x00'       # first byte of ack message
         self.button = '\x00'    # current button pressed
-        self.lastAck = '\x00\x00'
-        self.lastStatus = '\x00\x00\x00\x00\x00'
+        self.lastAck = '\x00'
+        self.lastStatus = '\x00'
 
         # command parsing
         self.commandTable =  {cmdProbe: Panel.handleProbe,
                         cmdAck: Panel.handleAck,
-                        cmdStatus: Panel.handleStatus}
+                        cmdStatus: Panel.handleStatus,
+                        cmdMsg: Panel.handleMsg}
                         
+        # action events
+        self.statusEvent = threading.Event()   # a status message has been received
+        self.events = [self.statusEvent]
+        
     # return the ack message for this panel        
     def getAck(self):
         args = self.ack+self.button
@@ -51,28 +58,51 @@ class Panel:
         try:
             self.commandTable[command](self, args)
         except KeyError:
-            if debug: log("unknown", printHex(command), printHex(args))
+            if debug: log(self.name, "unknown", printHex(command), printHex(args))
 
     # probe command           
     def handleProbe(self, args):
-        if debug: log("probe  ")
+        if debug: log(self.name, "probe  ")
 
     # ack command
     def handleAck(self, args):
         if args != self.lastAck:       # only display changed values
             self.lastAck = args
-            if debug: log("ack    ", printHex(args[0]), btnNames[args[1]])
+#            if debug: log(self.name, "ack    ", printHex(args[0]), btnNames[args[1]])
 
     # status command
     def handleStatus(self, args):
         if args != self.lastStatus:    # only display changed values
             self.lastStatus = args
-            if debug: log("status ", printHex(args))
+            if debug: log(self.name, "status ", printHex(args))
+        self.statusEvent.set()
 
     # message command
     def handleMsg(self, args):
-        msg = "".join(args).lstrip(" ").rstrip(" ")
-        if debug: log("msg    ", msg)
+        msg = printHex(args)
+        if debug: log(self.name, "msg    ", msg)
+
+########################################################################################################
+# action thread
+########################################################################################################
+class ActionThread(threading.Thread):
+    # constructor
+    def __init__(self, theName, theSequence, theState, thePanel):
+        threading.Thread.__init__(self, target=self.doAction)
+        self.name = theName
+        self.sequence = theSequence
+        self.state = theState
+        self.panel = thePanel
+
+    def doAction(self):
+        if debug: log(self.name, "action", self.name, "started")
+        for step in self.sequence:
+            if not self.state.running: break
+            self.panel.button = step[0] # set the button to be sent to start the action
+            if debug: log(self.name, "action", self.name, "button", self.panel.btnNames[step[0]])
+            step[1].clear()
+            step[1].wait()              # wait for the event that corresponds to the completion
+        if debug: log(self.name, "action", self.name, "completed")
 
 ########################################################################################################
 # One Touch panel
@@ -97,14 +127,6 @@ btnSelect = '\x04'
 btnDown = '\x05'
 btnUp = '\x06'
 
-btnNames = {btnNone: "none",
-            btnOne: "one",
-            btnTwo: "two",
-            btnThree: "three",
-            btnSelect: "select",
-            btnDown: "down",
-            btnUp: "up"}
-            
 degree = '\x60'
 
 class OneTouchPanel(Panel):
@@ -183,8 +205,8 @@ class OneTouchPanel(Panel):
             byte 3: 1 to set highlight, 0 to clear highlight          
     """
     # constructor
-    def __init__(self, theState, thePool):
-        Panel.__init__(self, theState, thePool)
+    def __init__(self, theName, theState, thePool):
+        Panel.__init__(self, theName, theState, thePool)
 
         # display state
         self.displayLines = ["", "", "", "", "", "", "", "", "", "", "", ""]
@@ -207,42 +229,51 @@ class OneTouchPanel(Panel):
         self.hiliteEvent = threading.Event()    # a display line has been highlighted
         self.spaOnEvent = threading.Event()     # the spa has been turned on
         self.spaOffEvent = threading.Event()    # the spa has been turned off
-        self.events = [self.displayEvent, self.hiliteEvent, self.spaOnEvent, self.spaOffEvent]
+        self.events = self.events + [self.displayEvent, self.hiliteEvent, self.spaOnEvent, self.spaOffEvent]
 
         # button sequences
-        self.spaOn = [(btnDown, self.hiliteEvent),
+        self.spaOnSeq = [(btnDown, self.hiliteEvent),
                  (btnSelect, self.hiliteEvent),
                  (btnOne, self.spaOnEvent),
                  (btnSelect, self.hiliteEvent)]
-        self.spaOff = [(btnDown, self.hiliteEvent),
+        self.spaOffSeq = [(btnDown, self.hiliteEvent),
                  (btnSelect, self.hiliteEvent),
                  (btnOne, self.spaOffEvent),
                  (btnSelect, self.hiliteEvent)]
-        self.main = [(btnSelect, self.hiliteEvent)]
-        self.back = [(btnBack, self.hiliteEvent)]
+        self.mainSeq = [(btnSelect, self.hiliteEvent)]
+        self.backSeq = [(btnBack, self.hiliteEvent)]
 
+        # button names
+        self.btnNames = {btnNone: "none",
+                         btnOne: "one",
+                         btnTwo: "two",
+                         btnThree: "three",
+                         btnSelect: "select",
+                         btnDown: "down",
+                         btnUp: "up"}
+            
         # start the thread that analyzes the display
-        displayThread = DisplayThread(2, self)
+        displayThread = DisplayThread("Display: ", 2, self)
         displayThread.start()
 
     # long message command
     def handleLongMsg(self, args):
         line = struct.unpack("!B", args[0])[0]
         msg = "".join(args[1:]).lstrip(" ").rstrip(" ")
-        if debug: log("longMsg", line, msg)
+        if debug: log(self.name, "longMsg", line, msg)
         self.displayLines[line] = msg
         self.displayEvent.set()
 
     # highlight line command
     def handleHilite(self, args):
         line = struct.unpack("!B", args[0])[0]
-        if debug: log("hilite ", line, printHex(args[1:]))
+        if debug: log(self.name, "hilite ", line, printHex(args[1:]))
         self.hiliteDisplay(line)
         self.hiliteEvent.set()
 
     # clear display command
     def handleClear(self, args):
-        if debug: log("clear  ", printHex(args))
+        if debug: log(self.name, "clear  ", printHex(args))
         self.clearDisplay()
 
     # highlight display characters command
@@ -251,7 +282,7 @@ class OneTouchPanel(Panel):
         start = struct.unpack("!B", args[1])[0]
         end = struct.unpack("!B", args[2])[0]
         setClr = struct.unpack("!B", args[3])[0]
-        if debug: log("hifield", "%d %d:%d" % (line, start, end), "set" if setClr else "clear")
+        if debug: log(self.name, "hifield", "%d %d:%d" % (line, start, end), "set" if setClr else "clear")
         if setClr:
             self.hiliteDisplay(line, start, end)
         else:
@@ -259,7 +290,7 @@ class OneTouchPanel(Panel):
 
     # determine the mode of the display
     def setDisplayMode(self):
-        if debug: log("setting display mode")
+        if debug: log(self.name, "setting display mode")
         if self.displayLines[0] == "EQUIPMENT ON":
             self.displayMode = "equipment"
         elif self.displayLines[11] == "MENU / HELP":
@@ -270,11 +301,11 @@ class OneTouchPanel(Panel):
             self.displayMode = "init"
         else:
             self.displayMode = "menu"
-        if debug: log("display mode:", self.displayMode)
+        if debug: log(self.name, "display mode:", self.displayMode)
             
     # set the state of the pool
     def setPoolState(self):
-        if debug: log("setting pool state")
+        if debug: log(self.name, "setting pool state")
         if self.displayMode == "main":  # main display
             self.pool.title = self.displayLines[0]
             self.pool.date = self.displayLines[2]
@@ -318,7 +349,7 @@ class OneTouchPanel(Panel):
                 self.spaOnEvent.set()
             else:
                 self.spaOffEvent.set()
-        if debug: log(self.pool.printState())
+#        if debug: log(self.name, self.pool.printState())
 
     def clearDisplay(self):
         for i in range(0,len(self.displayLines)):
@@ -331,49 +362,38 @@ class OneTouchPanel(Panel):
         self.hilitedEnd = end
 
     def spaOn(self):
-        sequence = self.spaOn
+        sequence = self.spaOnSeq
         if self.displayMode != "main":
             sequence = self.main + sequence
         actionThread = ActionThread("SpaOn", sequence, self.state, self)
         actionThread.start()
 
     def spaOff(self):
-        sequence = self.spaOff
+        sequence = self.spaOffSeq
         if self.displayMode != "main":
             sequence = self.main + sequence
         actionThread = ActionThread("SpaOff", sequence, self.state, self)
         actionThread.start()
 
 ########################################################################################################
-# SpaLink panel
-########################################################################################################
-# addressing
-baseAddr = '\x20'
-maxDevices = 3
-
-class SpaLinkPanel(Panel):
-    # constructor
-    def __init__(self, theState, thePool):
-        Panel.__init__(self, theState, thePool)
-
-########################################################################################################
-# display analysis thread
+# One Touch display analysis thread
 ########################################################################################################
 class DisplayThread(threading.Thread):
     # constructor
-    def __init__(self, delay, thePanel):
+    def __init__(self, theName, delay, thePanel):
         threading.Thread.__init__(self, target=self.readDisplay)
+        self.name = theName
         self.delay = delay
         self.panel = thePanel
 
     def readDisplay(self):
-        if debug: log("starting display thread")
+        if debug: log(self.name, "starting display thread")
         while self.panel.state.running:
             self.panel.displayEvent.clear()
-            if debug: log("waiting for display update to start")
+            if debug: log(self.name, "waiting for display update to start")
             self.panel.displayEvent.wait()
             if not self.panel.state.running: break
-            if debug: log("waiting for display update to complete")
+            if debug: log(self.name, "waiting for display update to complete")
             time.sleep(self.delay)      # wait for the display to finish updating
             lastMode = self.panel.displayMode
             self.panel.setDisplayMode()
@@ -381,28 +401,60 @@ class DisplayThread(threading.Thread):
                 actionThread = ActionThread("Main", self.panel.main, self.panel.state, self.panel)
                 actionThread.start()
             self.panel.setPoolState()
-        if debug: log("display thread completed")
+        if debug: log(self.name, "display thread completed")
+        
+########################################################################################################
+# SpaLink panel
+########################################################################################################
+# addressing
+baseAddr = '\x20'
+maxDevices = 3
 
-########################################################################################################
-# action thread
-########################################################################################################
-class ActionThread(threading.Thread):
+# buttons
+btn1 = '\x09'
+btn2 = '\x06'
+btn3 = '\x03'
+btn4 = '\x08'
+btn5 = '\x02'
+btn6 = '\x07'
+btn7 = '\x04'
+btn8 = '\x01'
+
+class SpaLinkPanel(Panel):
     # constructor
-    def __init__(self, theName, theSequence, theState, thePanel):
-        threading.Thread.__init__(self, target=self.doAction)
-        self.name = theName
-        self.sequence = theSequence
-        self.state = theState
-        self.panel = thePanel
+    def __init__(self, theName, theState, thePool):
+        Panel.__init__(self, theName, theState, thePool)
 
-    def doAction(self):
-        if debug: log("action", self.name, "started")
-        for step in self.sequence:
-            if not self.state.running: break
-            self.panel.button = step[0] # set the button to be sent to start the action
-            if debug: log("action", self.name, "button", btnNames[step[0]])
-            step[1].clear()
-            step[1].wait()              # wait for the event that corresponds to the completion
-        if debug: log("action", self.name, "completed")
+        # button names
+        self.btnNames = {btn1: "1",
+                         btn2: "2",
+                         btn3: "3",
+                         btn4: "4",
+                         btn5: "5",
+                         btn6: "6",
+                         btn7: "7",
+                         btn8: "8"}
+            
+        # button sequences
+        self.poolLightOnSeq = [(btn6, self.statusEvent)]
+        self.poolLightOffSeq = [(btn6, self.statusEvent)]
+        self.spaLightOnSeq = [(btn7, self.statusEvent)]
+        self.spaLightOffSeq = [(btn7, self.statusEvent)]
+
+    def poolLightOn(self):
+        actionThread = ActionThread("PoolLightOn", self.poolLightOnSeq, self.state, self)
+        actionThread.start()
+
+    def poolLightOff(self):
+        actionThread = ActionThread("PoolLightOff", self.poolLightOffSeq, self.state, self)
+        actionThread.start()
+
+    def spaLightOn(self):
+        actionThread = ActionThread("SpaLightOn", self.spaLightOnSeq, self.state, self)
+        actionThread.start()
+
+    def spaLightOff(self):
+        actionThread = ActionThread("SpaLightOff", self.spaLightOffSeq, self.state, self)
+        actionThread.start()
 
 

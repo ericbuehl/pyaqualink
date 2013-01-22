@@ -5,6 +5,7 @@ import time
 import threading
 
 from debugUtils import *
+from aqualinkConf import *
 from aqualinkInterface import *
 from aqualinkPanel import *
 
@@ -13,7 +14,8 @@ from aqualinkPanel import *
 ########################################################################################################
 class Pool:
     # constructor
-    def __init__(self, theState, serialDevice, panelAddr):
+    def __init__(self, theName, theState):
+        self.name = theName
         self.state = theState
 
         # identity
@@ -41,18 +43,30 @@ class Pool:
         self.spaLight = False
 
         # initiate interface and panels
-        self.interface = Interface(serialDevice)
-        self.panel = OneTouchPanel(theState, self)
-        self.panels = {panelAddr:self.panel}
+        self.interface = Interface("Serial:  ", serialDevice)
+        self.master = Panel("Master:  ", theState, self)
+        self.oneTouchPanel = OneTouchPanel("OneTouch:", theState, self)
+        self.spaLinkPanel = SpaLinkPanel("SpaLink: ", theState, self)
+        self.panels = {'\x00': self.master,
+                       oneTouchPanelAddr: self.oneTouchPanel,
+                       spaLinkPanelAddr: self.spaLinkPanel}
 
-        readThread = ReadThread(self.state, self)
+        readThread = ReadThread("Read:    ", self.state, self)
         readThread.start()
 
     def spaOn(self):
-        self.panel.spaOn()
+        self.oneTouchPanel.spaOn()
 
     def spaOff(self):
-        self.panel.spaOff()
+        self.oneTouchPanel.spaOff()
+
+    def lightsOn(self):
+        self.spaLinkPanel.poolLightOn()
+        self.spaLinkPanel.spaLightOn()
+
+    def lightsOff(self):
+        self.spaLinkPanel.poolLightOff()
+        self.spaLinkPanel.spaLightOff()
 
     def printState(self, delim="\n"):
         msg  = "Title:      "+self.title+delim
@@ -77,15 +91,16 @@ class Pool:
 ########################################################################################################
 class ReadThread(threading.Thread):
     # constructor
-    def __init__(self, theState, thePool):
+    def __init__(self, theName, theState, thePool):
         threading.Thread.__init__(self, target=self.readData)
+        self.name = theName
         self.state = theState
         self.pool = thePool
         self.lastDest = '\x00'
         
     # data reading loop
     def readData(self):
-        if debug: log("starting read thread")
+        if debug: log(self.name, "starting read thread")
         while self.state.running:
             if not self.state.running: break
             (dest, command, args) = self.pool.interface.readMsg()
@@ -100,5 +115,5 @@ class ReadThread(threading.Thread):
         for panel in self.pool.panels.values():   # force all pending events to complete
             for event in panel.events:
                 event.set()
-        if debug: log("terminating read thread")
+        if debug: log(self.name, "terminating read thread")
 
