@@ -20,6 +20,7 @@ class Interface:
     # constructor
     def __init__(self, theName, serialDevice):
         self.name = theName
+        if debugData: log(self.name, "opening serial port", serialDevice)
         self.port = serial.Serial(serialDevice, baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
         self.msg = "\x00\x00"
         self.debugRawMsg = ""
@@ -28,6 +29,7 @@ class Interface:
             self.msg += self.port.read(1)
             if debugRaw: self.debugRaw(self.msg[-1])
         self.msg = self.msg[-2:]
+        if debugData: log(self.name, "synchronized")
           
     # read the next message
     def readMsg(self):

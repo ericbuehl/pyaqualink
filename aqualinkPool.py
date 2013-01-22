@@ -8,6 +8,8 @@ from debugUtils import *
 from aqualinkConf import *
 from aqualinkInterface import *
 from aqualinkPanel import *
+from aqualinkOneTouchPanel import *
+from aqualinkSpaLinkPanel import *
 
 ########################################################################################################
 # state of the pool and equipment
@@ -101,12 +103,12 @@ class ReadThread(threading.Thread):
         while self.state.running:
             if not self.state.running: break
             (dest, command, args) = self.pool.interface.readMsg()
-            try:                         # messages that are related to this device
+            try:                         # handle messages that are addressed to these devices
                 if not monitorMode:      # send ACK if not passively monitoring
                     self.pool.interface.sendMsg(self.pool.panels[dest].getAck())
                 self.pool.panels[dest].parseMsg(command, args)
                 self.lastDest = dest
-            except:                      # ignore other messages except...
+            except KeyError:                      # ignore other messages except...
                 if (dest == '\x00') and (self.lastDest in self.pool.panels.keys()): # ack messages to controller that are from the panels
                     self.pool.master.parseMsg(command, args)
         for panel in self.pool.panels.values():   # force all pending events to complete
