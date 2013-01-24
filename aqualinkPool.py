@@ -20,17 +20,23 @@ class Pool:
         self.state = theState
 
         # identity
+        self.model = ""
         self.title = ""
         self.date = ""
         self.time = ""
 
+        # configuration
+        self.options = 0
+        
         # environment
         self.airTemp = 0
         self.poolTemp = 0
         self.spaTemp = 0
+        self.solarTemp = 0
         self.waterTemp = 0
 
         # modes
+        self.opMode = "AUTO"
         self.spaMode = False
         self.cleanMode = False
         self.fountainMode = False
@@ -49,13 +55,13 @@ class Pool:
         self.spaLinkPanel = SpaLinkPanel("SpaLink: ", self.state, self)
         self.panels = {oneTouchPanelAddr: self.oneTouchPanel,
                        spaLinkPanelAddr: self.spaLinkPanel}
-        self.interface = Interface("Serial:  ", self.state, serialDevice, self)
+        self.interface = Interface("Serial:  ", self.state, RS485Device, self)
 
-    def spaOn(self):
+    def spaModeOn(self):
         if not self.spa:
             self.spaLinkPanel.spaMode()
 
-    def spaOff(self):
+    def spaModeOff(self):
         if self.spa:
             self.spaLinkPanel.spaMode()
 

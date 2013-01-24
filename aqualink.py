@@ -8,6 +8,7 @@ from debugUtils import *
 from aqualinkConf import *
 from aqualinkPool import *
 from aqualinkWeb import *
+from aqualinkSerial import *
 
 ########################################################################################################
 # program state
@@ -25,6 +26,7 @@ if __name__ == "__main__":
     try:
         thePool = Pool("Pool:    ", theState)
         webUI = WebUI("WebUI:   ", theState, thePool)
+        serialUI = SerialUI("SerialUI:", theState, RS232Device, thePool)
         while True:
             time.sleep(30)
     except KeyboardInterrupt:

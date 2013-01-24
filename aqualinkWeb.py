@@ -76,10 +76,10 @@ class WebThread(threading.Thread):
                     response = httpHeader(self.pool.title, len(html)) + html
                 else:
                     if path == "/spaon":
-                        self.pool.spaOn()
+                        self.pool.spaModeOn()
                         response = httpHeader(self.pool.title)
                     elif path == "/spaoff":
-                        self.pool.spaOff()
+                        self.pool.spaModeOff()
                         response = httpHeader(self.pool.title)
                     elif path == "/lightson":
                         self.pool.lightsOn()

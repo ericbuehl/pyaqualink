@@ -201,7 +201,7 @@ class OneTouchPanel(Panel):
             self.displayMode = "main"
         elif self.displayLines[11] == "SYSTEM ON":
             self.displayMode = "onetouch"
-        elif self.displayLines[5] == "MODEL 8156":
+        elif self.displayLines[5][0:5] == "MODEL":
             self.displayMode = "init"
         else:
             self.displayMode = "menu"
@@ -253,6 +253,9 @@ class OneTouchPanel(Panel):
                 self.spaOnEvent.set()
             else:
                 self.spaOffEvent.set()
+        elif self.displayMode == "init":
+            self.pool.model = self.displayLines[5].split(" ")[1]
+            
 #        if debug: log(self.name, self.pool.printState())
 
     def clearDisplay(self):
