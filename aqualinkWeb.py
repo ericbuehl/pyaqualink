@@ -75,7 +75,13 @@ class WebThread(threading.Thread):
                                           refreshScript(10))
                     response = httpHeader(self.pool.title, len(html)) + html
                 else:
-                    if path == "/spaon":
+                    if path == "/cleanon":
+                        self.pool.cleanModeOn()
+                        response = httpHeader(self.pool.title)
+                    elif path == "/cleanoff":
+                        self.pool.cleanModeOff()
+                        response = httpHeader(self.pool.title)
+                    elif path == "/spaon":
                         self.pool.spaModeOn()
                         response = httpHeader(self.pool.title)
                     elif path == "/spaoff":

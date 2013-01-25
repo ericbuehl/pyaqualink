@@ -35,14 +35,14 @@ class Panel:
         # state
         self.ack = '\x00'       # first byte of ack message
         self.button = '\x00'    # current button pressed
-        self.lastAck = '\x00'
-        self.lastStatus = '\x00'
+        self.lastAck = '\x00\x00'
+        self.lastStatus = '\x00\x00\x00\x00\x00'
 
         # command parsing
-        self.commandTable =  {cmdProbe: Panel.handleProbe,
-                        cmdAck: Panel.handleAck,
-                        cmdStatus: Panel.handleStatus,
-                        cmdMsg: Panel.handleMsg}
+        self.cmdTable = {cmdProbe: Panel.handleProbe,
+                         cmdAck: Panel.handleAck,
+                         cmdStatus: Panel.handleStatus,
+                         cmdMsg: Panel.handleMsg}
                         
         # action events
         self.statusEvent = threading.Event()   # a status message has been received
@@ -57,7 +57,7 @@ class Panel:
     # parse a message and perform commands    
     def parseMsg(self, command, args):
         try:
-            self.commandTable[command](self, args)
+            self.cmdTable[command](self, args)
         except KeyError:
             if debug: log(self.name, "unknown", printHex(command), printHex(args))
 
@@ -80,8 +80,7 @@ class Panel:
 
     # message command
     def handleMsg(self, args):
-        msg = printHex(args)
-        if debug: log(self.name, "msg    ", msg)
+        if debug: log(self.name, "msg    ", printHex(args))
 
 ########################################################################################################
 # action thread
@@ -100,9 +99,11 @@ class ActionThread(threading.Thread):
         for step in self.sequence:
             if not self.state.running: break
             self.panel.button = step[0] # set the button to be sent to start the action
-            if debug: log(self.name, "action", self.name, "button", self.panel.btnNames[step[0]])
+            if debug: log(self.name, "action", self.name, "button", self.panel.btnNames[step[0]], "sent")
             step[1].clear()
             step[1].wait()              # wait for the event that corresponds to the completion
+            if debug: log(self.name, "action", self.name, "button", self.panel.btnNames[step[0]], "completed")
+            time.sleep(1)
         if debug: log(self.name, "action", self.name, "completed")
 
         

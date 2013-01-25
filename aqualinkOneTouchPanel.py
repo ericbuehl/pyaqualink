@@ -123,7 +123,7 @@ class OneTouchPanel(Panel):
         self.ack = '\x8b'   # first byte of ack message
 
         # command parsing
-        self.commandTable.update({cmdLongMsg: OneTouchPanel.handleLongMsg,
+        self.cmdTable.update({cmdLongMsg: OneTouchPanel.handleLongMsg,
                             cmdHilite: OneTouchPanel.handleHilite,
                             cmdClear: OneTouchPanel.handleClear,
                             cmdHiField: OneTouchPanel.handleHiField})
@@ -146,6 +146,8 @@ class OneTouchPanel(Panel):
                  (btnSelect, self.hiliteEvent)]
         self.mainSeq = [(btnSelect, self.hiliteEvent)]
         self.backSeq = [(btnBack, self.hiliteEvent)]
+        self.upSeq = [(btnUp, self.hiliteEvent)]
+        self.downSeq = [(btnDown, self.hiliteEvent)]
 
         # button names
         self.btnNames = {btnNone: "none",
@@ -268,18 +270,19 @@ class OneTouchPanel(Panel):
         self.hilitedStart = start
         self.hilitedEnd = end
 
+    def mainMenu(self):
+        """ Return the sequence to get the display to the main page."""
+        if self.displayMode == "menu":
+            return self.backSeq
+        elif self.displayMode == "onetouch":
+            return self.mainSeq
+    
     def spaOn(self):
-        sequence = self.spaOnSeq
-        if self.displayMode != "main":
-            sequence = self.main + sequence
-        actionThread = ActionThread("SpaOn", sequence, self.state, self)
+        actionThread = ActionThread("SpaOn", self.mainMenu()+self.spaOnSeq, self.state, self)
         actionThread.start()
 
     def spaOff(self):
-        sequence = self.spaOffSeq
-        if self.displayMode != "main":
-            sequence = self.main + sequence
-        actionThread = ActionThread("SpaOff", sequence, self.state, self)
+        actionThread = ActionThread("SpaOff", self.mainMenu()+self.spaOffSeq, self.state, self)
         actionThread.start()
 
 ########################################################################################################
@@ -305,7 +308,7 @@ class DisplayThread(threading.Thread):
             lastMode = self.panel.displayMode
             self.panel.setDisplayMode()
             if (lastMode == "init") and (self.panel.displayMode != "main"): # put the display in main mode if it didn't start there
-                actionThread = ActionThread("Main", self.panel.main, self.panel.state, self.panel)
+                actionThread = ActionThread("Main", self.panel.mainSeq, self.panel.state, self.panel)
                 actionThread.start()
             self.panel.setPoolState()
         if debug: log(self.name, "display thread completed")
