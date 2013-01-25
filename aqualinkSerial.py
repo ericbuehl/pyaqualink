@@ -29,7 +29,7 @@ class SerialUI:
                                       bytesize=serial.EIGHTBITS, 
                                       parity=serial.PARITY_NONE, 
                                       stopbits=serial.STOPBITS_ONE)
-            readRS232Thread = RS232Thread("RS232:   ", self.state, thePort, self.pool)
+            readRS232Thread = RS232Thread("RS232", self.state, thePort, self.pool)
             readRS232Thread.start()
         except:
             if debugData: log(self.name, "unable to open serial port")

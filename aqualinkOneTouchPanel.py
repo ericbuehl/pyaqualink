@@ -159,7 +159,7 @@ class OneTouchPanel(Panel):
                          btnUp: "up"}
             
         # start the thread that analyzes the display
-        displayThread = DisplayThread("Display: ", 2, self)
+        displayThread = DisplayThread("Display", 2, self)
         displayThread.start()
 
     # long message command
@@ -277,14 +277,6 @@ class OneTouchPanel(Panel):
         elif self.displayMode == "onetouch":
             return self.mainSeq
     
-    def spaOn(self):
-        actionThread = ActionThread("SpaOn", self.mainMenu()+self.spaOnSeq, self.state, self)
-        actionThread.start()
-
-    def spaOff(self):
-        actionThread = ActionThread("SpaOff", self.mainMenu()+self.spaOffSeq, self.state, self)
-        actionThread.start()
-
 ########################################################################################################
 # One Touch display analysis thread
 ########################################################################################################

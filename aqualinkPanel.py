@@ -7,6 +7,7 @@ import threading
 
 from debugUtils import *
 from aqualinkConf import *
+from aqualinkPool import *
 
 ########################################################################################################
 # Base Aqualink control panel
@@ -85,7 +86,7 @@ class Panel:
 ########################################################################################################
 # action thread
 ########################################################################################################
-class ActionThread(threading.Thread):
+class Action(threading.Thread):
     # constructor
     def __init__(self, theName, theSequence, theState, thePanel):
         threading.Thread.__init__(self, target=self.doAction)

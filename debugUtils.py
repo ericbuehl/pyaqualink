@@ -40,10 +40,10 @@ class LogFile:
 
 def log(*args):
     if logFileName != "":
-        message = ""
-        for arg in args:
+        message = "%-16s:"%args[0]
+        for arg in args[1:]:
             message += arg.__str__()+" "
-        message = message.strip(" ")
+#        message = message.strip(" ")
         logFile = open(logFileName, "a")
         logFile.write(timestamp()+" - "+message+"\n")
         logFile.close()

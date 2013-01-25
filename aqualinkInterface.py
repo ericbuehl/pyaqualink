@@ -40,7 +40,7 @@ class Interface:
         self.msg = self.msg[-2:]
         if debugData: log(self.name, "synchronized")
         # start up the read thread
-        readThread = ReadThread("Read:    ", self.state, self.pool)
+        readThread = ReadThread("Read", self.state, self.pool)
         readThread.start()
           
     def readMsg(self):

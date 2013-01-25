@@ -18,7 +18,7 @@ class WebUI:
         self.name = theName
         self.state = theState
         self.pool = thePool
-        webThread = WebThread("Web:     ", theState, httpPort, thePool)
+        webThread = WebThread("Web", theState, httpPort, thePool)
         webThread.start()
 
 ########################################################################################################

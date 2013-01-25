@@ -24,9 +24,9 @@ class State:
 if __name__ == "__main__":
     theState = State()
     try:
-        thePool = Pool("Pool:    ", theState)
-        webUI = WebUI("WebUI:   ", theState, thePool)
-        serialUI = SerialUI("SerialUI:", theState, RS232Device, thePool)
+        thePool = Pool("Pool", theState)
+        webUI = WebUI("WebUI", theState, thePool)
+        serialUI = SerialUI("SerialUI", theState, RS232Device, thePool)
         while True:
             time.sleep(30)
     except KeyboardInterrupt:
