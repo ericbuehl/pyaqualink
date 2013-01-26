@@ -11,6 +11,19 @@ from aqualinkOneTouchPanel import *
 from aqualinkSpaLinkPanel import *
 from aqualinkAllButtonPanel import *
 
+# equipment types
+equipPump = 0
+equipAux1 = 1
+equipAux2 = 2
+equipAux3 = 3
+equipAux4 = 4
+equipAux5 = 5
+equipAux6 = 6
+equipAux7 = 7
+equipSpa = 8
+equipHeater = 9
+equipMode = 255
+
 ########################################################################################################
 # state of the pool and equipment
 ########################################################################################################
@@ -29,7 +42,7 @@ class Pool:
 
         # configuration
         self.options = 0
-        self.tempScale = "F"
+        self.tempScale = ""
         
         # environment
         self.airTemp = 0
@@ -45,19 +58,19 @@ class Pool:
         self.fountainMode = False
 
         # equipment
-        self.pump = Equipment("Pump")
-        self.spa = Equipment("Spa")
-        self.aux1 = Equipment("Cleaner")
-        self.aux2 = Equipment("Blower")
-        self.aux3 = Equipment("Aux 3")
-        self.aux4 = Equipment("Pool Light")
-        self.aux5 = Equipment("Spa Light")
-        self.aux6 = Equipment("Aux 6")
-        self.aux7 = Equipment("Aux 7")
-        self.heater = Equipment("Heater")
-        self.none = Equipment() # dummy equipment - FIXME
+        self.pump = Equipment("Pump", equipPump, self)
+        self.spa = Equipment("Spa", equipSpa, self)
+        self.aux1 = Equipment("Cleaner", equipAux1, self)
+        self.aux2 = Equipment("Blower", equipAux2, self)
+        self.aux3 = Equipment("Aux 3", equipAux3, self)
+        self.aux4 = Equipment("Pool Light", equipAux4, self)
+        self.aux5 = Equipment("Spa Light", equipAux5, self)
+        self.aux6 = Equipment("Aux 6", equipAux6, self)
+        self.aux7 = Equipment("Aux 7", equipAux7, self)
+        self.heater = Equipment("Heater", equipHeater, self)
+#        self.none = Equipment("") # dummy equipment - FIXME
 
-        self.equipmentList = [self.pump,
+        self.equipList = [self.pump,
                             self.spa,
                             self.aux1,
                             self.aux2,
@@ -79,11 +92,27 @@ class Pool:
         self.oneTouchPanel = OneTouchPanel("One Touch", self.state, self)
         self.spaLinkPanel = SpaLinkPanel("SpaLink", self.state, self)
         self.allButtonPanel = AllButtonPanel("All Button", self.state, self)
+        self.panel = self.allButtonPanel
         self.panels = {
 #                       oneTouchPanelAddr: self.oneTouchPanel,
 #                       spaLinkPanelAddr: self.spaLinkPanel,
                        allButtonPanelAddr: self.allButtonPanel}
         self.interface = Interface("RS485", self.state, RS485Device, self)
+
+        # get control sequences for equipment from the anel
+        for equip in self.equipList:
+            equip.sequence = [self.panel.getAction(equip.type)]
+
+    def checkTime(self):
+        realTime = time.localtime()
+        contTime = time.strptime(self.date+self.time, '%m/%d/%y %a%I:%M %p')
+        diffTime = (realTime.tm_year - contTime.tm_year,
+                    realTime.tm_mon - contTime.tm_mon,
+                    realTime.tm_mday - contTime.tm_mday,
+                    realTime.tm_hour - contTime.tm_hour,
+                    realTime.tm_min - contTime.tm_min)
+        if diffTime != (0, 0, 0, 0, 0):
+            self.panel.setTime(diffTime)
 
     def cleanModeOn(self):
         seq = []
@@ -154,9 +183,9 @@ class Pool:
         msg += "Air Temp:    %d°%s" %  (self.airTemp, self.tempScale)+delim
         msg += "Pool Temp:   %d°%s" %  (self.poolTemp, self.tempScale)+delim
         msg += "Spa Temp:    %d°%s" %  (self.spaTemp, self.tempScale)+delim
-        for equipment in self.equipmentList:
-            if equipment.name != "":
-                msg += "%-12s"%(equipment.name+":")+equipment.printState()+delim
+        for equip in self.equipList:
+            if equip.name != "":
+                msg += "%-12s"%(equip.name+":")+equip.printState()+delim
         return msg
 
 # equipment states
@@ -165,11 +194,15 @@ stateOn = 1
 stateEn = 2
 
 class Equipment:
-    def __init__(self, name=""):
+    def __init__(self, name, theType, thePool):
         self.name = name
+        self.type = theType
+        self.pool = thePool
+        self.sequence = None
         self.state = stateOff
 
     def setState(self, theState):
+        # sets the state of the equipment object, not the actual equipment
         self.state = theState
         if debug: log(self.name, self.printState())
 
@@ -178,3 +211,18 @@ class Equipment:
         elif self.state == stateEn: return "ENA"
         else: return "OFF"
 
+    def setOn(self, theState):
+        # turns the equipment on or off
+        if debug: log(self.name, self.state, theState)
+        if ((theState == 1) and (self.state == stateOff)) or\
+           ((theState == 0) and (self.state != stateOff)):
+            action = Action(self.name+(" On" if theState else " Off"), self.sequence, self.pool.state, self.pool.panel)
+            action.start()
+            self.sequence[0][1].wait()
+
+class Mode(Equipment):
+    def __init__(self, name, theType, thePool):
+        Equipment.__init__(self, name, theType, thePool)
+
+    def setOn(self, theState):
+        pass

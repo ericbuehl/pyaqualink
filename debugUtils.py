@@ -40,7 +40,7 @@ class LogFile:
 
 def log(*args):
     if logFileName != "":
-        message = "%-16s:"%args[0]
+        message = "%-16s: "%args[0]
         for arg in args[1:]:
             message += arg.__str__()+" "
 #        message = message.strip(" ")

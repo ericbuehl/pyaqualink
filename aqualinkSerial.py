@@ -69,6 +69,7 @@ class RS232Thread(threading.Thread):
                     "CLEANR": RS232Thread.cleanrCmd,
                     "WFALL": RS232Thread.wfallCmd,
                     "SPA": RS232Thread.spaCmd,
+                    "UNITS": RS232Thread.unitsCmd,
                     "POOLHT": RS232Thread.poolhtCmd,
                     "SPAHT": RS232Thread.spahtCmd,
                     "SOLHT": RS232Thread.solhtCmd,
@@ -78,7 +79,13 @@ class RS232Thread(threading.Thread):
                     "POOLTMP": RS232Thread.pooltmpCmd,
                     "SPATMP": RS232Thread.spatmpCmd,
                     "AIRTMP": RS232Thread.airtmpCmd,
-                    "SOLTMP": RS232Thread.soltmpCmd,}
+                    "SOLTMP": RS232Thread.soltmpCmd,
+                    "MENU": RS232Thread.menuCmd,
+                    "LEFT": RS232Thread.leftCmd,
+                    "RIGHT": RS232Thread.rightCmd,
+                    "CANCEL": RS232Thread.cancelCmd,
+                    "ENTER": RS232Thread.enterCmd
+                    }
 
         # error messages
         self.errMsg = {1: "INVALID COMMAND",
@@ -205,7 +212,10 @@ class RS232Thread(threading.Thread):
             return struct.pack("!B", int(value))
         else:
             return 0
-        
+
+    def equipState(self, state):
+        return "0" if state == 0 else "1"
+                
     def echoCmd(self, cmd, oper="", value=""):
         if oper == "=":
             self.adapterState.echo = self.setBoolean(value, True, False)
@@ -274,19 +284,37 @@ class RS232Thread(threading.Thread):
         pass
 
     def pumploCmd(self, cmd, oper, value):
-        pass
+        return self.error(23)
 
     def pumpCmd(self, cmd, oper, value):
-        pass
+        if oper == "=":
+            if int(value) in range(0,2):
+                self.pool.pump.setOn(int(value))
+            else:
+                return self.error(5)
+        return self.response(cmd, "=", self.equipState(self.pool.pump.state))
 
     def cleanrCmd(self, cmd, oper, value):
-        pass
+        return self.error(23)
 
     def wfallCmd(self, cmd, oper, value):
-        pass
+        return self.error(23)
 
     def spaCmd(self, cmd, oper, value):
-        pass
+        if oper == "=":
+            if int(value) in range(0,2):
+                self.pool.spa.setOn(int(value))
+            else:
+                return self.error(5)
+        return self.response(cmd, "=", self.equipState(self.pool.spa.state))
+
+    def unitsCmd(self, cmd, oper, value):
+        if oper == "=":
+            if value in ["C", "F"]:
+                self.pool.tempScale = value
+            else:
+                return self.error(5)
+        return self.response(cmd, "=", self.pool.tempScale)
 
     def poolhtCmd(self, cmd, oper, value):
         pass
@@ -307,19 +335,39 @@ class RS232Thread(threading.Thread):
         pass
 
     def pooltmpCmd(self, cmd, oper, value):
-        return self.response(cmd, "=", str(self.pool.poolTemp))
+        return self.response(cmd, "=", str(self.pool.poolTemp)+self.pool.tempScale)
 
     def spatmpCmd(self, cmd, oper, value):
-        return self.response(cmd, "=", str(self.pool.spaTemp))
+        return self.response(cmd, "=", str(self.pool.spaTemp)+self.pool.tempScale)
 
     def airtmpCmd(self, cmd, oper, value):
-        return self.response(cmd, "=", str(self.pool.airTemp))
+        return self.response(cmd, "=", str(self.pool.airTemp)+self.pool.tempScale)
 
     def soltmpCmd(self, cmd, oper, value):
-        return self.response(cmd, "=", str(self.pool.solarTemp))
+        return self.response(cmd, "=", str(self.pool.solarTemp)+self.pool.tempScale)
 
     def auxCmd(self, cmd, auxDev, oper, value):
         pass
+        
+    def menuCmd(self, cmd, oper, value):
+        self.pool.panel.menu()
+        return self.response()
+        
+    def leftCmd(self, cmd, oper, value):
+        self.pool.panel.left()
+        return self.response()
+        
+    def rightCmd(self, cmd, oper, value):
+        self.pool.panel.right()
+        return self.response()
+        
+    def cancelCmd(self, cmd, oper, value):
+        self.pool.checkTime()
+        return self.response()
+        
+    def enterCmd(self, cmd, oper, value):
+        self.pool.panel.enter()
+        return self.response()
         
 class AdapterState:
     def __init__(self):
