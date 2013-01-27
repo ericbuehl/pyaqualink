@@ -46,7 +46,7 @@ class RS232Thread(threading.Thread):
         self.port = thePort
         self.pool = thePool
 
-        self.product = "Serial Adapter Emulator"
+        self.product = "Pool Controller Serial Adapter Emulator"
         self.version = "A01"
 
         # command dispatch table        
@@ -289,7 +289,7 @@ class RS232Thread(threading.Thread):
     def pumpCmd(self, cmd, oper, value):
         if oper == "=":
             if int(value) in range(0,2):
-                self.pool.pump.setOn(int(value))
+                self.pool.pump.setOn(int(value), wait=True)
             else:
                 return self.error(5)
         return self.response(cmd, "=", self.equipState(self.pool.pump.state))
@@ -303,7 +303,7 @@ class RS232Thread(threading.Thread):
     def spaCmd(self, cmd, oper, value):
         if oper == "=":
             if int(value) in range(0,2):
-                self.pool.spa.setOn(int(value))
+                self.pool.spa.setOn(int(value), wait=True)
             else:
                 return self.error(5)
         return self.response(cmd, "=", self.equipState(self.pool.spa.state))

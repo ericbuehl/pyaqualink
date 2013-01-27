@@ -52,6 +52,8 @@ class Panel:
     # return the ack message for this panel        
     def getAckMsg(self):
         args = self.ack+self.button
+        if self.button != '\x00':
+            if debug: log(self.name, "ack", printHex(args))
         self.button = btnNone
         return (cmdAck, args)
         
@@ -94,18 +96,20 @@ class Action(threading.Thread):
         self.sequence = theSequence
         self.state = theState
         self.panel = thePanel
+        for action in self.sequence:
+            action[1].clear()
 
     def doAction(self):
-        if debug: log(self.name, "action", self.name, "started")
-        for step in self.sequence:
+        if debug: log(self.name, "action started")
+        for action in self.sequence:
             if not self.state.running: break
-            self.panel.button = step[0] # set the button to be sent to start the action
-            if debug: log(self.name, "action", self.name, "button", self.panel.btnNames[step[0]], "sent")
-            step[1].clear()
-            step[1].wait()              # wait for the event that corresponds to the completion
-            if debug: log(self.name, "action", self.name, "button", self.panel.btnNames[step[0]], "completed")
+            self.panel.button = action[0] # set the button to be sent to start the action
+            if debug: log(self.name, "button", self.panel.btnNames[action[0]], "sent")
+            if debug: log(self.name, "waiting", action[1].isSet())
+            action[1].wait()              # wait for the event that corresponds to the completion
+            if debug: log(self.name, "button", self.panel.btnNames[action[0]], "completed")
             time.sleep(1)
-        if debug: log(self.name, "action", self.name, "completed")
+        if debug: log(self.name, "action completed")
 
         
 

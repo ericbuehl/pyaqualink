@@ -24,6 +24,12 @@ equipSpa = 8
 equipHeater = 9
 equipMode = 255
 
+# equipment states
+stateOff = 0
+stateOn = 1
+stateEna = 2
+stateEnh = 4
+
 ########################################################################################################
 # state of the pool and equipment
 ########################################################################################################
@@ -68,7 +74,6 @@ class Pool:
         self.aux6 = Equipment("Aux 6", equipAux6, self)
         self.aux7 = Equipment("Aux 7", equipAux7, self)
         self.heater = Equipment("Heater", equipHeater, self)
-#        self.none = Equipment("") # dummy equipment - FIXME
 
         self.equipList = [self.pump,
                             self.spa,
@@ -80,26 +85,28 @@ class Pool:
                             self.aux6,
                             self.aux7,
                             self.heater]
-        
-#        self.filter = self.pump
-#        self.cleaner = self.aux1
-#        self.blower = self.aux2
-#        self.poolLight = self.aux4
-#        self.spaLight = self.aux5
 
+        # Modes
+        self.cleanMode = Mode("Clean Mode", equipMode, self, 
+                              [self.pump, self.aux1])
+        self.spaMode = Mode("Spa Mode", equipMode, self, 
+                            [self.spa, self.heater, self.aux4, self.aux5])
+        self.lightsMode = Mode("Lights Mode", equipMode, self, 
+                              [self.aux4, self.aux5])
+               
         # initiate interface and panels
         self.master = Panel("Master", self.state, self)
         self.oneTouchPanel = OneTouchPanel("One Touch", self.state, self)
         self.spaLinkPanel = SpaLinkPanel("SpaLink", self.state, self)
         self.allButtonPanel = AllButtonPanel("All Button", self.state, self)
         self.panel = self.allButtonPanel
-        self.panels = {
+        self.panels = {allButtonPanelAddr: self.allButtonPanel,
 #                       oneTouchPanelAddr: self.oneTouchPanel,
 #                       spaLinkPanelAddr: self.spaLinkPanel,
-                       allButtonPanelAddr: self.allButtonPanel}
+                        }
         self.interface = Interface("RS485", self.state, RS485Device, self)
 
-        # get control sequences for equipment from the anel
+        # get control sequences for equipment from the panel
         for equip in self.equipList:
             equip.sequence = [self.panel.getAction(equip.type)]
 
@@ -115,66 +122,22 @@ class Pool:
             self.panel.setTime(diffTime)
 
     def cleanModeOn(self):
-        seq = []
-        if not self.pump.state:
-            seq += self.allButtonPanel.pumpSeq
-        if not self.cleaner.state:
-            seq += self.allButtonPanel.aux1Seq
-        action = Action("Clean On", seq, self.state, self.allButtonPanel)
-        action.start()
+        self.cleanMode.setOn(stateOn)
 
     def cleanModeOff(self):
-        seq = []
-        if self.pump.state:
-            seq += self.allButtonPanel.pumpSeq
-        if self.cleaner.state:
-            seq += self.allButtonPanel.aux1Seq
-        action = Action("Clean Off", seq, self.state, self.allButtonPanel)
-        action.start()
+        self.cleanMode.setOn(stateOff)
 
     def spaModeOn(self):
-        seq = []
-        if not self.spa.state:
-            seq += self.allButtonPanel.spaSeq
-        if not self.heater.state:
-            seq += self.allButtonPanel.spaHtrSeq
-        if not self.poolLight.state:
-            seq += self.allButtonPanel.aux4Seq
-        if not self.spaLight.state:
-            seq += self.allButtonPanel.aux5Seq
-        action = Action("Spa On", seq, self.state, self.allButtonPanel)
-        action.start()
+        self.spaMode.setOn(stateOn)
 
     def spaModeOff(self):
-        seq = []
-        if self.spa.state:
-            seq += self.allButtonPanel.spaSeq
-        if self.heater.state:
-            seq += self.allButtonPanel.spaHtrSeq
-        if self.poolLight.state:
-            seq += self.allButtonPanel.aux4Seq
-        if self.spaLight.state:
-            seq += self.allButtonPanel.aux5Seq
-        action = Action("Spa Off", seq, self.state, self.allButtonPanel)
-        action.start()
+        self.spaMode.setOn(stateOff)
 
     def lightsOn(self):
-        seq = []
-        if not self.poolLight.state:
-            seq += self.allButtonPanel.aux4Seq
-        if not self.spaLight.state:
-            seq += self.allButtonPanel.aux5Seq
-        action = Action("Lights On", seq, self.state, self.allButtonPanel)
-        action.start()
+        self.lightsMode.setOn(stateOn)
 
     def lightsOff(self):
-        seq = []
-        if self.poolLight.state:
-            seq += self.allButtonPanel.aux4Seq
-        if self.spaLight.state:
-            seq += self.allButtonPanel.aux5Seq
-        action = Action("Lights Off", seq, self.state, self.allButtonPanel)
-        action.start()
+        self.lightsMode.setOn(stateOff)
 
     def printState(self, delim="\n"):
         msg  = "Title:      "+self.title+delim
@@ -188,17 +151,12 @@ class Pool:
                 msg += "%-12s"%(equip.name+":")+equip.printState()+delim
         return msg
 
-# equipment states
-stateOff = 0
-stateOn = 1
-stateEn = 2
-
 class Equipment:
-    def __init__(self, name, theType, thePool):
+    def __init__(self, name, theType, thePool, theSequence=None):
         self.name = name
         self.type = theType
         self.pool = thePool
-        self.sequence = None
+        self.sequence = theSequence
         self.state = stateOff
 
     def setState(self, theState):
@@ -208,21 +166,43 @@ class Equipment:
 
     def printState(self):
         if self.state == stateOn: return "ON"
-        elif self.state == stateEn: return "ENA"
+        elif self.state == stateEna: return "ENA"
+        elif self.state == stateEnh: return "ENH"
         else: return "OFF"
 
-    def setOn(self, theState):
+    def setOn(self, theState, wait=False):
         # turns the equipment on or off
         if debug: log(self.name, self.state, theState)
-        if ((theState == 1) and (self.state == stateOff)) or\
-           ((theState == 0) and (self.state != stateOff)):
-            action = Action(self.name+(" On" if theState else " Off"), self.sequence, self.pool.state, self.pool.panel)
+        if ((theState == stateOn) and (self.state == stateOff)) or\
+           ((theState == stateOff) and (self.state != stateOff)):
+            action = Action(self.name+(" On" if theState else " Off"), 
+                            self.sequence, self.pool.state, self.pool.panel)
             action.start()
-            self.sequence[0][1].wait()
+            if wait:
+                if debug: log(self.name, "waiting", self.sequence[0][1].isSet())
+                self.sequence[0][1].wait()
 
 class Mode(Equipment):
-    def __init__(self, name, theType, thePool):
-        Equipment.__init__(self, name, theType, thePool)
+    def __init__(self, name, theType, thePool, theSequence):
+        Equipment.__init__(self, name, theType, thePool, theSequence)
 
     def setOn(self, theState):
-        pass
+        # turns the list of equipment on or off
+        self.setState = theState
+        # do the work in a thread so this returns synchronously
+        modeThread = threading.Thread(target=self.doMode)
+        modeThread.start()
+
+    def doMode(self):
+        if debug: log(self.name, "mode started", self.setState)
+        if self.setState:
+            # turn on equipment list in order
+            for equip in self.sequence:
+                equip.setOn(self.setState, wait=True)
+        else:
+            # turn off equipment list in reverse order
+             for equip in reversed(self.sequence):
+                equip.setOn(self.setState, wait=True)
+        if debug: log(self.name, "mode completed")
+                
+            
