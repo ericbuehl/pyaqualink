@@ -105,7 +105,7 @@ class Pool:
 #                       oneTouchPanelAddr: self.oneTouchPanel,
 #                       spaLinkPanelAddr: self.spaLinkPanel,
                         }
-        self.panel = self.panels[0]
+        self.panel = self.panels.values()[0]
         self.interface = Interface("RS485", self.state, RS485Device, self)
 
         # get control sequences for equipment from the panel

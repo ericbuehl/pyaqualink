@@ -82,7 +82,7 @@ class WebThread(threading.Thread):
                         self.pool.cleanMode.changeState(False)
                         response = httpHeader(self.pool.title)
                     elif path == "/spaon":
-                        self.pool.spaModechangeState(True)
+                        self.pool.spaMode.changeState(True)
                         response = httpHeader(self.pool.title)
                     elif path == "/spaoff":
                         self.pool.spaMode.changeState(False)
