@@ -98,14 +98,14 @@ class Pool:
                
         # initiate interface and panels
         self.master = Panel("Master", self.state, self)
-        self.oneTouchPanel = OneTouchPanel("One Touch", self.state, self)
-        self.spaLinkPanel = SpaLinkPanel("SpaLink", self.state, self)
+#        self.oneTouchPanel = OneTouchPanel("One Touch", self.state, self)
+#        self.spaLinkPanel = SpaLinkPanel("SpaLink", self.state, self)
         self.allButtonPanel = AllButtonPanel("All Button", self.state, self)
-        self.panel = self.allButtonPanel
         self.panels = {allButtonPanelAddr: self.allButtonPanel,
 #                       oneTouchPanelAddr: self.oneTouchPanel,
 #                       spaLinkPanelAddr: self.spaLinkPanel,
                         }
+        self.panel = self.panels[0]
         self.interface = Interface("RS485", self.state, RS485Device, self)
 
         # get control sequences for equipment from the panel
