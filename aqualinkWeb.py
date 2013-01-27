@@ -93,6 +93,26 @@ class WebThread(threading.Thread):
                     elif path == "/lightsoff":
                         self.pool.lightsMode.changeState(False)
                         response = httpHeader(self.pool.title)
+                    elif path == "/spatemp":
+                        html  = htmlHeader([self.pool.title], refreshScript(10))
+                        html += "<body bgcolor=#424242>"
+                        spaState = self.pool.spa.printState()
+                        heaterState = self.pool.heater.printState()
+                        if spaState == "ON":
+                            temp = "%3d"%self.pool.spaTemp                      
+                            if heaterState == "ON":
+                                color = "red"
+                            else:
+                                color = "green"
+                        else:
+                            temp = "OFF"
+                            color = "white"
+                        html += "<font size='512' face='Helvetica' color='"+color+"'>"
+                        html += "<bold>"+temp+"</bold>"
+                        html += "</font>"
+                        html += "</body>"
+                        html += htmlTrailer()
+                        response = httpHeader(self.pool.title, len(html)) + html
                     else:
                         response = httpHeader(self.pool.title, "404 Not Found")                    
                 ns.sendall(response)
