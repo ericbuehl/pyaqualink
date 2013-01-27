@@ -35,9 +35,11 @@ stateEnh = 4
 ########################################################################################################
 class Pool:
     # constructor
-    def __init__(self, theName, theState):
+    def __init__(self, theName, newState):
         self.name = theName
-        self.state = theState
+        self.state = newState
+        self.stateChanged = True
+        self.stateFileName = "pool.dat"
 
         # identity
         self.model = ""
@@ -112,35 +114,71 @@ class Pool:
 
     def checkTime(self):
         realTime = time.localtime()
-        contTime = time.strptime(self.date+self.time, '%m/%d/%y %a%I:%M %p')
-        diffTime = (realTime.tm_year - contTime.tm_year,
-                    realTime.tm_mon - contTime.tm_mon,
-                    realTime.tm_mday - contTime.tm_mday,
-                    realTime.tm_hour - contTime.tm_hour,
-                    realTime.tm_min - contTime.tm_min)
+        poolTime = time.strptime(self.date+self.time, '%m/%d/%y %a%I:%M %p')
+        diffTime = (realTime.tm_year - poolTime.tm_year,
+                    realTime.tm_mon - poolTime.tm_mon,
+                    realTime.tm_mday - poolTime.tm_mday,
+                    realTime.tm_hour - poolTime.tm_hour,
+                    realTime.tm_min - poolTime.tm_min)
         if diffTime != (0, 0, 0, 0, 0):
-            self.panel.setTime(diffTime)
+            self.panel.adjustTime(diffTime)
 
-    def cleanModeOn(self):
-        self.cleanMode.setOn(stateOn)
+    def setModel(self, model, rev=""):
+        if model != self.model:
+            self.model = model
+            self.rev = rev
+            self.stateChanged = True
+        self.logState()        
 
-    def cleanModeOff(self):
-        self.cleanMode.setOn(stateOff)
+    def setTitle(self, title):
+        if title != self.title:
+            self.title = title
+            self.stateChanged = True
+        self.logState()        
 
-    def spaModeOn(self):
-        self.spaMode.setOn(stateOn)
+    def setDate(self, theDate):
+        if theDate != self.date:
+            self.date = theDate
+            self.stateChanged = True
+        self.logState()        
 
-    def spaModeOff(self):
-        self.spaMode.setOn(stateOff)
+    def setTime(self, theTime):
+        if theTime != self.time:
+            self.time = theTime
+            self.stateChanged = True
+        self.logState()        
+        
+    def setAirTemp(self, temp):
+        if temp[0] != self.airTemp:
+            self.airTemp = temp[0]
+            self.tempScale = temp[1]
+            self.stateChanged = True
+        self.logState()        
+                    
+    def setPoolTemp(self, temp):
+        if temp[0] != self.poolTemp:
+            self.poolTemp = temp[0]
+            self.tempScale = temp[1]
+            self.stateChanged = True
+        self.logState()        
+        
+    def setSpaTemp(self, temp):
+        if temp[0] != self.spaTemp:
+            self.spaTemp = temp[0]
+            self.tempScale = temp[1]
+            self.stateChanged = True
+        self.logState()        
 
-    def lightsOn(self):
-        self.lightsMode.setOn(stateOn)
-
-    def lightsOff(self):
-        self.lightsMode.setOn(stateOff)
-
+    def logState(self):
+        if self.stateChanged:
+            stateFile = open(self.stateFileName, "w")
+            stateFile.write(self.printState())
+            stateFile.close()
+            stateChanged = False
+                
     def printState(self, delim="\n"):
         msg  = "Title:      "+self.title+delim
+        msg += "Model:      "+self.model+" Rev "+self.rev+delim
         msg += "Date:       "+self.date+delim
         msg += "Time:       "+self.time+delim
         msg += "Air Temp:    %d°%s" %  (self.airTemp, self.tempScale)+delim
@@ -159,9 +197,10 @@ class Equipment:
         self.sequence = theSequence
         self.state = stateOff
 
-    def setState(self, theState):
+    def setState(self, newState):
         # sets the state of the equipment object, not the actual equipment
-        self.state = theState
+        self.state = newState
+        self.pool.stateChanged = True
         if debug: log(self.name, self.printState())
 
     def printState(self):
@@ -170,12 +209,12 @@ class Equipment:
         elif self.state == stateEnh: return "ENH"
         else: return "OFF"
 
-    def setOn(self, theState, wait=False):
+    def changeState(self, newState, wait=False):
         # turns the equipment on or off
-        if debug: log(self.name, self.state, theState)
-        if ((theState == stateOn) and (self.state == stateOff)) or\
-           ((theState == stateOff) and (self.state != stateOff)):
-            action = Action(self.name+(" On" if theState else " Off"), 
+        if debug: log(self.name, self.state, newState)
+        if ((newState == stateOn) and (self.state == stateOff)) or\
+           ((newState == stateOff) and (self.state != stateOff)):
+            action = Action(self.name+(" On" if newState else " Off"), 
                             self.sequence, self.pool.state, self.pool.panel)
             action.start()
             if wait:
@@ -186,23 +225,23 @@ class Mode(Equipment):
     def __init__(self, name, theType, thePool, theSequence):
         Equipment.__init__(self, name, theType, thePool, theSequence)
 
-    def setOn(self, theState):
+    def changeState(self, newState):
         # turns the list of equipment on or off
-        self.setState = theState
+        self.newState = newState
         # do the work in a thread so this returns synchronously
         modeThread = threading.Thread(target=self.doMode)
         modeThread.start()
 
     def doMode(self):
-        if debug: log(self.name, "mode started", self.setState)
-        if self.setState:
+        if debugAction: log(self.name, "mode started", self.newState)
+        if self.newState:
             # turn on equipment list in order
             for equip in self.sequence:
-                equip.setOn(self.setState, wait=True)
+                equip.changeState(self.newState, wait=True)
         else:
             # turn off equipment list in reverse order
              for equip in reversed(self.sequence):
-                equip.setOn(self.setState, wait=True)
-        if debug: log(self.name, "mode completed")
+                equip.changeState(self.newState, wait=True)
+        if debugAction: log(self.name, "mode completed")
                 
             

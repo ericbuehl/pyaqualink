@@ -51,7 +51,7 @@ class WebThread(threading.Thread):
                 if self.socket in inputs:
                     (ns, addr) = self.socket.accept()
                     name = addr[0]+":"+str(addr[1])+" -"
-                    if debug: log(self.name, name, "connected")
+                    if debugWeb: log(self.name, name, "connected")
                     self.handleRequest(ns, addr)
         finally:
             self.socket.close()
@@ -76,28 +76,28 @@ class WebThread(threading.Thread):
                     response = httpHeader(self.pool.title, len(html)) + html
                 else:
                     if path == "/cleanon":
-                        self.pool.cleanModeOn()
+                        self.pool.cleanMode.changeState(True)
                         response = httpHeader(self.pool.title)
                     elif path == "/cleanoff":
-                        self.pool.cleanModeOff()
+                        self.pool.cleanMode.changeState(False)
                         response = httpHeader(self.pool.title)
                     elif path == "/spaon":
-                        self.pool.spaModeOn()
+                        self.pool.spaModechangeState(True)
                         response = httpHeader(self.pool.title)
                     elif path == "/spaoff":
-                        self.pool.spaModeOff()
+                        self.pool.spaMode.changeState(False)
                         response = httpHeader(self.pool.title)
                     elif path == "/lightson":
-                        self.pool.lightsOn()
+                        self.pool.lightsMode.changeState(True)
                         response = httpHeader(self.pool.title)
                     elif path == "/lightsoff":
-                        self.pool.lightsOff()
+                        self.pool.lightsMode.changeState(False)
                         response = httpHeader(self.pool.title)
                     else:
                         response = httpHeader(self.pool.title, "404 Not Found")                    
                 ns.sendall(response)
         finally:
             ns.close()
-            if debug: log(self.name, "disconnected")
+            if debugWeb: log(self.name, "disconnected")
 
 

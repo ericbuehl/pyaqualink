@@ -53,7 +53,7 @@ class Panel:
     def getAckMsg(self):
         args = self.ack+self.button
         if self.button != '\x00':
-            if debug: log(self.name, "ack", printHex(args))
+            if debugAck: log(self.name, "ack", printHex(args))
         self.button = btnNone
         return (cmdAck, args)
         
@@ -72,18 +72,18 @@ class Panel:
     def handleAck(self, args):
         if args != self.lastAck:       # only display changed values
             self.lastAck = args
-#            if debug: log(self.name, "ack    ", printHex(args))
+            if debugAck: log(self.name, "ack    ", printHex(args))
 
     # status command
     def handleStatus(self, args):
         if args != self.lastStatus:    # only display changed values
             self.lastStatus = args
-            if debug: log(self.name, "status ", printHex(args))
+            if debugStatus: log(self.name, "status ", printHex(args))
         self.statusEvent.set()
 
     # message command
     def handleMsg(self, args):
-        if debug: log(self.name, "msg    ", printHex(args))
+        if debugMsg: log(self.name, "msg", printHex(args))
 
 ########################################################################################################
 # action thread
@@ -100,16 +100,16 @@ class Action(threading.Thread):
             action[1].clear()
 
     def doAction(self):
-        if debug: log(self.name, "action started")
+        if debugAction: log(self.name, "action started")
         for action in self.sequence:
             if not self.state.running: break
             self.panel.button = action[0] # set the button to be sent to start the action
-            if debug: log(self.name, "button", self.panel.btnNames[action[0]], "sent")
-            if debug: log(self.name, "waiting", action[1].isSet())
+            if debugAction: log(self.name, "button", self.panel.btnNames[action[0]], "sent")
+            if debugAction: log(self.name, "waiting", action[1].isSet())
             action[1].wait()              # wait for the event that corresponds to the completion
-            if debug: log(self.name, "button", self.panel.btnNames[action[0]], "completed")
+            if debugAction: log(self.name, "button", self.panel.btnNames[action[0]], "completed")
             time.sleep(1)
-        if debug: log(self.name, "action completed")
+        if debugAction: log(self.name, "action completed")
 
         
 

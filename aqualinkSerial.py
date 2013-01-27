@@ -18,11 +18,10 @@ class SerialUI:
     """
     def __init__(self, theName, theState, serialDevice, thePool):
         """Initialization.
-        Open the serial port and find the start of a message."""
+        Open the serial port and start the read thread."""
         self.name = theName
         self.state = theState
         self.pool = thePool
-        # start up the read thread
         try:
             if debugData: log(self.name, "opening serial port", serialDevice)
             thePort = serial.Serial(serialDevice, baudrate=RS232Baud, 
@@ -36,7 +35,6 @@ class SerialUI:
 
 class RS232Thread(threading.Thread):
     """ Message reading thread.
-
     """
     def __init__(self, theName, theState, thePort, thePool):
         """ Initialize the thread."""        
@@ -130,6 +128,7 @@ class RS232Thread(threading.Thread):
         self.true = ["ON", "Y", "T", "TRUE", "YES", "1"]
         self.false = ["OFF", "N", "F", "FALSE", "NO", "0"] 
 
+        # Initialize the state
         self.adapterState = AdapterState()
             
 
@@ -214,8 +213,11 @@ class RS232Thread(threading.Thread):
             return 0
 
     def equipState(self, state):
+        # consider any non zero state to be on
         return "0" if state == 0 else "1"
-                
+
+    # command handling
+                    
     def echoCmd(self, cmd, oper="", value=""):
         if oper == "=":
             self.adapterState.echo = self.setBoolean(value, True, False)
@@ -317,13 +319,18 @@ class RS232Thread(threading.Thread):
         return self.response(cmd, "=", self.pool.tempScale)
 
     def poolhtCmd(self, cmd, oper, value):
-        pass
+        self.spahtCmd(self, cmd, oper, value)
 
     def spahtCmd(self, cmd, oper, value):
-        pass
+        if oper == "=":
+            if int(value) in range(0,2):
+                self.pool.heater.setOn(int(value), wait=True)
+            else:
+                return self.error(5)
+        return self.response(cmd, "=", self.equipState(self.pool.heater.state))
 
     def solhtCmd(self, cmd, oper, value):
-        pass
+        return self.error(23)
 
     def poolspCmd(self, cmd, oper, value):
         pass
@@ -348,7 +355,9 @@ class RS232Thread(threading.Thread):
 
     def auxCmd(self, cmd, auxDev, oper, value):
         pass
-        
+
+    # additional commands added to be able to send buttons to controller
+           
     def menuCmd(self, cmd, oper, value):
         self.pool.panel.menu()
         return self.response()

@@ -2,10 +2,16 @@
 # configuration
 ##################################################################
 logFileName = "aqualink.log"
+
 debug = True
 debugData = False
 debugRaw = False
+debugAck = False
+debugStatus = True
+debugAction = True
+debugMsg = True
 debugHttp = False
+debugWeb = False
 
 RS485Device = "/dev/ttyUSB0"        # RS485 serial device to be used
 RS232Device = "/dev/ttyUSB1"        # RS232 serial device to be used
