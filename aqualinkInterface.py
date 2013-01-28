@@ -71,26 +71,26 @@ class Interface:
             # parse the elements of the message              
             dlestx = self.msg[0:2]
             dest = self.msg[2:3]
-            command = self.msg[3:4]
+            cmd = self.msg[3:4]
             args = self.msg[4:-3]
             checksum = self.msg[-3:-2]
             dleetx = self.msg[-2:]
             if debugData: debugMsg = printHex(dlestx)+" "+printHex(dest)+" "+\
-                                     printHex(command)+" "+printHex(args)+" "+\
+                                     printHex(cmd)+" "+printHex(args)+" "+\
                                      printHex(checksum)+" "+printHex(dleetx)
             self.msg = ""
             # stop reading if a message with a valid checksum is read
-            if self.checksum(dlestx+dest+command+args) == checksum:
+            if self.checksum(dlestx+dest+cmd+args) == checksum:
                 if debugData: log(self.name, "-->", debugMsg)
-                return (dest, command, args)
+                return (dest, cmd, args)
             else:
                 if debugData: log(self.name, "-->", debugMsg, 
                                   "*** bad checksum ***")
 
-    def sendMsg(self, (dest, command, args)):
+    def sendMsg(self, (dest, cmd, args)):
         """ Send a message.
         The destination address, command, and arguments are specified as a tuple."""
-        msg = DLE+STX+dest+command+args
+        msg = DLE+STX+dest+cmd+args
         msg = msg+self.checksum(msg)+DLE+ETX
         for i in range(2,len(msg)-2):                       
             # if a byte in the message has the value \x10 insert a NUL after it
@@ -127,7 +127,7 @@ class ReadThread(threading.Thread):
         self.name = theName
         self.state = theState
         self.pool = thePool
-        self.lastDest = '\xff'
+        self.lastDest = 0xff
         
     def readData(self):
         """ Message handling loop.
@@ -137,21 +137,21 @@ class ReadThread(threading.Thread):
         while self.state.running:
             # read until the program state changes to not running
             if not self.state.running: break
-            (dest, command, args) = self.pool.interface.readMsg()
+            (dest, cmd, args) = self.pool.interface.readMsg()
             try:                         
                 # handle messages that are addressed to these panels
                 if not monitorMode:      
                     # send Ack if not passively monitoring
                     self.pool.interface.sendMsg((masterAddr,) + \
                                                 self.pool.panels[dest].getAckMsg())
-                self.pool.panels[dest].parseMsg(command, args)
+                self.pool.panels[dest].parseMsg(cmd, args)
                 self.lastDest = dest
             except KeyError:                      
                 # ignore other messages except...
                 if (dest == masterAddr) and \
                         (self.lastDest in self.pool.panels.keys()): 
                     # parse ack messages to master that are from these panels
-                    self.pool.master.parseMsg(command, args)
+                    self.pool.master.parseMsg(cmd, args)
         # force all pending panel events to complete
         for panel in self.pool.panels.values():   
             for event in panel.events:

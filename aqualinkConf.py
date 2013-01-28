@@ -9,7 +9,7 @@ debugRaw = False
 debugAck = False
 debugStatus = True
 debugAction = True
-debugMsg = False
+debugMsg = True
 debugHttp = False
 debugWeb = False
 
