@@ -3,13 +3,13 @@
 ##################################################################
 logFileName = "aqualink.log"
 
-debug = True
+debug = False
 debugData = False
 debugRaw = False
 debugAck = False
-debugStatus = True
-debugAction = True
-debugMsg = True
+debugStatus = False
+debugAction = False
+debugMsg = False
 debugHttp = False
 debugWeb = False
 

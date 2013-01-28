@@ -42,6 +42,7 @@ class Interface:
         # start up the read thread
         readThread = ReadThread("Read", self.state, self.pool)
         readThread.start()
+        log(self.name, "ready")
           
     def readMsg(self):
         """ Read the next valid message from the serial port.

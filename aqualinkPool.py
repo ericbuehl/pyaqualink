@@ -187,7 +187,7 @@ class Equipment:
         # sets the state of the equipment object, not the actual equipment
         self.state = newState
         self.pool.stateChanged = True
-        if debug: log(self.name, self.printState())
+        log(self.name, self.printState())
 
     def printState(self):
         if self.state == Equipment.stateOn: return "ON"
@@ -207,7 +207,7 @@ class Equipment:
 #                if debug: log(self.name, "waiting", self.action.event.isSet())
                 self.action.event.wait()
 
-class Mode:
+class Mode(Equipment):
     # a Mode is defined by an ordered list of Equipment that is turned on or off
     def __init__(self, name, thePool, theEquipList):
         self.name = name
@@ -233,5 +233,7 @@ class Mode:
              for equip in reversed(self.equipList):
                 equip.changeState(self.newState, wait=True)
         if debugAction: log(self.name, "mode completed")
+        self.state = self.newState
+        log(self.name, self.printState())
                 
             

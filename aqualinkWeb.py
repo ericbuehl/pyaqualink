@@ -51,6 +51,7 @@ class WebThread(threading.Thread):
         try:
             self.socket.bind(("", self.httpPort))
             if debugWeb: log(self.name, "waiting for connections")
+            log(self.name, "ready")
             self.socket.listen(5)
             # handle connections
             try:
