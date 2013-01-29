@@ -93,16 +93,29 @@ class Pool:
         for equip in self.equipList:
             equip.action = self.panel.getAction(equip)
 
+        # start cron thread
+        cronThread = threading.Thread(target=self.doCron)
+        cronThread.start()
+
+    def doCron(self):
+        while True:
+            # check the time every hour
+            self.checkTime()
+            time.sleep(3600)
+        
     def checkTime(self):
-        realTime = time.localtime()
-        poolTime = time.strptime(self.date+self.time, '%m/%d/%y %a%I:%M %p')
-        diffTime = (realTime.tm_year - poolTime.tm_year,
-                    realTime.tm_mon - poolTime.tm_mon,
-                    realTime.tm_mday - poolTime.tm_mday,
-                    realTime.tm_hour - poolTime.tm_hour,
-                    realTime.tm_min - poolTime.tm_min)
-        if diffTime != (0, 0, 0, 0, 0):
-            self.panel.adjustTime(diffTime)
+        if (self.date != "") and (self.time != ""):
+            realTime = time.localtime()
+            poolTime = time.strptime(self.date+self.time, '%m/%d/%y %a%I:%M %p')
+            diffTime = (realTime.tm_year - poolTime.tm_year,
+                        realTime.tm_mon - poolTime.tm_mon,
+                        realTime.tm_mday - poolTime.tm_mday,
+                        realTime.tm_hour - poolTime.tm_hour,
+                        realTime.tm_min - poolTime.tm_min - 1)
+            if diffTime != (0, 0, 0, 0, 0):
+                log("controller time", time.asctime(poolTime))
+                log("adjusting to", time.asctime(realTime))
+                self.panel.adjustTime(diffTime)
 
     def setModel(self, model, rev=""):
         if model != self.model:
@@ -157,17 +170,17 @@ class Pool:
             stateFile.close()
             stateChanged = False
                 
-    def printState(self, delim="\n"):
-        msg  = "Title:      "+self.title+delim
-        msg += "Model:      "+self.model+" Rev "+self.rev+delim
-        msg += "Date:       "+self.date+delim
-        msg += "Time:       "+self.time+delim
-        msg += "Air Temp:    %d°%s" %  (self.airTemp, self.tempScale)+delim
-        msg += "Pool Temp:   %d°%s" %  (self.poolTemp, self.tempScale)+delim
-        msg += "Spa Temp:    %d°%s" %  (self.spaTemp, self.tempScale)+delim
+    def printState(self, start="", end="\n"):
+        msg  = start+"Title:      "+self.title+end
+        msg += start+"Model:      "+self.model+" Rev "+self.rev+end
+        msg += start+"Date:       "+self.date+end
+        msg += start+"Time:       "+self.time+end
+        msg += start+"Air Temp:    %d°%s" %  (self.airTemp, self.tempScale)+end
+        msg += start+"Pool Temp:   %d°%s" %  (self.poolTemp, self.tempScale)+end
+        msg += start+"Spa Temp:    %d°%s" %  (self.spaTemp, self.tempScale)+end
         for equip in self.equipList:
             if equip.name != "":
-                msg += "%-12s"%(equip.name+":")+equip.printState()+delim
+                msg += start+"%-12s"%(equip.name+":")+equip.printState()+end
         return msg
 
 class Equipment:

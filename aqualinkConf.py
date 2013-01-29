@@ -8,9 +8,9 @@ debugData = False
 debugRaw = False
 debugAck = False
 debugStatus = False
-debugAction = False
+debugAction = True
 debugMsg = False
-debugHttp = False
+debugHttp = True
 debugWeb = False
 
 RS485Device = "/dev/ttyUSB0"        # RS485 serial device to be used

@@ -17,13 +17,13 @@ def parseRequest(request):
             params[part[0]] = part[1]
     return (verb, path, params)
 
-def httpHeader(server, contentLength=0, responseCode="200 OK"):
+def httpHeader(server, contentType="text/html; charset=UTF-8", contentLength=0, responseCode="200 OK"):
     response  = "HTTP/1.0 "+responseCode+"\n"
     response += "Server: "+server+"\n"
     response += "Connection: close\n"
     if contentLength != 0:
         response += "Content-length: "+str(contentLength)+"\n"
-        response += "Content-Type: text/html; charset=UTF-8\n"
+        response += "Content-Type: "+contentType+"\n"
     response += "\r\n"
     return response
 
@@ -78,8 +78,8 @@ def redirectScript(location, interval):
 # Basic HTML definitions
 ######################################################################################
 
-def htmlDocument(document, title=[""], script="", trailer=""):
-    response  = htmlHeader(title, script)
+def htmlDocument(document, title=[""], script="", css="", trailer=""):
+    response  = htmlHeader(title, script, css)
     response += htmlBody(document, title)
     response += htmlTrailer(trailer)
     return response

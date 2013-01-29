@@ -35,12 +35,19 @@ class WebThread(threading.Thread):
         self.pool = thePool
         self.server = "aqualink"
 
+        # http verb dispatch table
         self.verbTable = {"GET": WebThread.handleGet,
                          "POST": WebThread.handlePost,
                          "PUT": WebThread.handlePut,
                          "DELETE": WebThread.handleDelete,
                          "HEAD": WebThread.handleHead}
-    
+
+        # web page dispatch table
+        self.pageTable = {"/": WebThread.statusPage,
+                          "/favicon.ico": WebThread.faviconPage,
+                          "/css/phone.css": WebThread.cssPage,
+                          "/spatemp": WebThread.spatempPage,
+                          }    
     # web server loop
     def webServer(self):
         if debug: log(self.name, "starting web thread")
@@ -70,82 +77,127 @@ class WebThread(threading.Thread):
 
     # parse and handle a request            
     def handleRequest(self, ns, addr):
-        # got a request, parse it
         request = ns.recv(8192)
         if not request: return
-        if debugHttp: log(self.name, "request:\n", request)
+        if debugHttp: log(self.name, "request:\n", request, "\n")
         (verb, path, params) = parseRequest(request)
-        if debugHttp: log(self.name, "parsed verb:", verb, "path:", path, "params:", params)
+        if debugHttp: log(self.name, "verb:", verb, "path:", path, "params:", params)
         try:
-            if verb == "GET":
-                if path == "/":
-                    html  = htmlDocument(displayPage([[self.pool.printState("<br>")]]), 
-                                          [self.server], 
-                                          refreshScript(10))
-                    response = httpHeader(self.server, len(html)) + html
-                else:
-                    if path == "/cleanon":
-                        self.pool.cleanMode.changeState(True)
-                        response = httpHeader(self.server)
-                    elif path == "/cleanoff":
-                        self.pool.cleanMode.changeState(False)
-                        response = httpHeader(self.server)
-                    elif path == "/spaon":
-                        self.pool.spaMode.changeState(True)
-                        response = httpHeader(self.server)
-                    elif path == "/spaoff":
-                        self.pool.spaMode.changeState(False)
-                        response = httpHeader(self.server)
-                    elif path == "/lightson":
-                        self.pool.lightsMode.changeState(True)
-                        response = httpHeader(self.server)
-                    elif path == "/lightsoff":
-                        self.pool.lightsMode.changeState(False)
-                        response = httpHeader(self.server)
-                    elif path == "/spatemp":
-                        html  = htmlHeader([self.server], refreshScript(10))
-                        html += "<body bgcolor=#424242>"
-                        spaState = self.pool.spa.printState()
-                        heaterState = self.pool.heater.printState()
-                        if spaState == "ON":
-                            temp = "%3d"%self.pool.spaTemp                      
-                            if heaterState == "ON":
-                                color = "red"
-                            else:
-                                color = "green"
-                        else:
-                            temp = "OFF"
-                            color = "white"
-                        html += "<font size='512' face='Helvetica' color='"+color+"'>"
-                        html += "<bold>"+temp+"</bold>"
-                        html += "</font>"
-                        html += "</body>"
-                        html += htmlTrailer()
-                        response = httpHeader(self.server, len(html)) + html
-                    else:
-                        response = httpHeader(self.server, "404 Not Found")                    
-                ns.sendall(response)
+            try:
+                response = self.verbTable[verb](self, path, params)
+            except KeyError:
+                response = httpHeader(self.server, "400 Bad Request")
+            except:
+                response = httpHeader(self.server, "500 Internal Server Error")
+            if debugHttp: log(self.name, "response:\n", self.printHeaders(response), "\n")
+            ns.sendall(response)
         finally:
             ns.close()
             if debugWeb: log(self.name, "disconnected")
 
-    def handleGet(self, path, params, body):
-        response = httpHeader(self.server, "501 Not mplemented")
+    def printHeaders(self, msg):
+        hdrs = ""
+        lines = msg.split("\n")
+        for line in lines:
+            if line == "\r": break
+            hdrs += line+"\n"
+        return hdrs
+        
+    def handleGet(self, path, params):
+        if debugHttp: log(self.name, "handleGet")
+        try:
+            response = self.pageTable[path](self, path, params)
+        except KeyError:
+            response = httpHeader(self.server, "404 Not Found")                    
+        except:
+            response = httpHeader(self.server, "500 Internal Server Error")
         return response
 
-    def handlePost(self, path, params, body):
-        response = httpHeader(self.server, "501 Not mplemented")
+    def handlePost(self, path, params):
+        if debugHttp: log(self.name, "handlePost")
+        if path == "/cleanon":
+            self.pool.cleanMode.changeState(True)
+            response = httpHeader(self.server)
+        elif path == "/cleanoff":
+            self.pool.cleanMode.changeState(False)
+            response = httpHeader(self.server)
+        elif path == "/spaon":
+            self.pool.spaMode.changeState(True)
+            response = httpHeader(self.server)
+        elif path == "/spaoff":
+            self.pool.spaMode.changeState(False)
+            response = httpHeader(self.server)
+        elif path == "/lightson":
+            self.pool.lightsMode.changeState(True)
+            response = httpHeader(self.server)
+        elif path == "/lightsoff":
+            self.pool.lightsMode.changeState(False)
+            response = httpHeader(self.server)
         return response
 
-    def handlePut(self, path, params, body):
-        response = httpHeader(self.server, "501 Not mplemented")
+    def handlePut(self, path, params):
+        if debugHttp: log(self.name, "handlePut")
+        response = httpHeader(self.server, "501 Not Implemented")
         return response
 
-    def handleDelete(self, path, params, body):
-        response = httpHeader(self.server, "501 Not mplemented")
+    def handleDelete(self, path, params):
+        if debugHttp: log(self.name, "handleDelete")
+        response = httpHeader(self.server, "501 Not Implemented")
         return response
 
-    def handleHead(self, path, params, body):
-        response = httpHeader(self.server, "501 Not mplemented")
+    def handleHead(self, path, params):
+        if debugHttp: log(self.name, "handleHead")
+        response = httpHeader(self.server, "501 Not Implemented")
+        return response
+
+    def statusPage(self, path, params):
+        if debugHttp: log(self.name, "statusPage")
+        html  = htmlHeader([self.pool.title], css="/css/phone.css") #refreshScript(10))
+        html += "<body><p>\n"
+        html += self.pool.printState(end="<br>\n") 
+        html += "</p></body>"
+        html += htmlTrailer()
+        response = httpHeader(self.server, contentLength=len(html)) + html
+        return response
+
+    def readFile(self, path):
+        path = path.lstrip("/")
+        if debugHttp: log(self.name, "reading", path)
+        f = open(path)
+        body = f.read()
+        f.close()
+        return body
+    
+    def faviconPage(self, path, params):
+        if debugHttp: log(self.name, "faviconPage")
+        body = self.readFile(path)
+        response = httpHeader(self.server, contentType="image/x-icon", contentLength=len(body)) + body
+        return response
+
+    def cssPage(self, path, params):
+        if debugHttp: log(self.name, "cssPage")
+        body = self.readFile(path)
+        response = httpHeader(self.server, contentLength=len(body)) + body
+        return response
+
+    def spatempPage(self, path, params):
+        if debugHttp: log(self.name, "spatempPage")
+        html  = htmlHeader([self.pool.title], css="/css/phone.css") #refreshScript(10))
+        html += "<body>"
+        spaState = self.pool.spa.printState()
+        heaterState = self.pool.heater.printState()
+        if spaState == "ON":
+            temp = "%3d"%self.pool.spaTemp                      
+            if heaterState == "ON":
+                color = "red"
+            else:
+                color = "green"
+        else:
+            temp = "OFF"
+            color = "white"
+        html += "<div class='temp-"+color+"'>"+temp+"</div>"
+        html += "</body>"
+        html += htmlTrailer()
+        response = httpHeader(self.server, contentLength=len(html)) + html
         return response
 
