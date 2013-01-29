@@ -3,12 +3,10 @@
 
 import time
 
-from debugUtils import *
-from aqualinkConf import *
 from aqualinkInterface import *
 from aqualinkPanel import *
-from aqualinkOneTouchPanel import *
-from aqualinkSpaLinkPanel import *
+#from aqualinkOneTouchPanel import *
+#from aqualinkSpaLinkPanel import *
 from aqualinkAllButtonPanel import *
 
 ########################################################################################################
@@ -16,9 +14,9 @@ from aqualinkAllButtonPanel import *
 ########################################################################################################
 class Pool:
     # constructor
-    def __init__(self, theName, newState):
+    def __init__(self, theName, theContext):
         self.name = theName
-        self.state = newState
+        self.context = theContext
         self.stateChanged = True
         self.stateFileName = "pool.dat"
 
@@ -47,16 +45,16 @@ class Pool:
         self.fountainMode = False
 
         # equipment
-        self.pump = Equipment("Pump", self)
-        self.spa = Equipment("Spa", self)
-        self.aux1 = Equipment("Cleaner", self)
-        self.aux2 = Equipment("Blower", self)
-        self.aux3 = Equipment("Aux 3", self)
-        self.aux4 = Equipment("Pool Light", self)
-        self.aux5 = Equipment("Spa Light", self)
-        self.aux6 = Equipment("Aux 6", self)
-        self.aux7 = Equipment("Aux 7", self)
-        self.heater = Equipment("Heater", self)
+        self.pump = Equipment("Pump", self.context, self)
+        self.spa = Equipment("Spa", self.context, self)
+        self.aux1 = Equipment("Cleaner", self.context, self)
+        self.aux2 = Equipment("Blower", self.context, self)
+        self.aux3 = Equipment("Aux 3", self.context, self)
+        self.aux4 = Equipment("Pool Light", self.context, self)
+        self.aux5 = Equipment("Spa Light", self.context, self)
+        self.aux6 = Equipment("Aux 6", self.context, self)
+        self.aux7 = Equipment("Aux 7", self.context, self)
+        self.heater = Equipment("Heater", self.context, self)
 
         self.equipList = [self.pump,
                             self.spa,
@@ -70,24 +68,24 @@ class Pool:
                             self.heater]
 
         # Modes
-        self.cleanMode = Mode("Clean Mode", self, 
+        self.cleanMode = Mode("Clean Mode", self.context, self, 
                               [self.pump, self.aux1])
-        self.spaMode = Mode("Spa Mode", self, 
+        self.spaMode = Mode("Spa Mode", self.context, self, 
                             [self.spa, self.heater, self.aux4, self.aux5])
-        self.lightsMode = Mode("Lights Mode", self, 
+        self.lightsMode = Mode("Lights Mode", self.context, self, 
                               [self.aux4, self.aux5])
                
         # initiate interface and panels
-        self.master = Panel("Master", self.state, self)
-#        self.oneTouchPanel = OneTouchPanel("One Touch", self.state, self)
-#        self.spaLinkPanel = SpaLinkPanel("SpaLink", self.state, self)
-        self.allButtonPanel = AllButtonPanel("All Button", self.state, self)
-        self.panels = {allButtonPanelAddr: self.allButtonPanel,
-#                       oneTouchPanelAddr: self.oneTouchPanel,
-#                       spaLinkPanelAddr: self.spaLinkPanel,
+        self.master = Panel("Master", self.context, self)
+#        self.oneTouchPanel = OneTouchPanel("One Touch", self.context, self)
+#        self.spaLinkPanel = SpaLinkPanel("SpaLink", self.context, self)
+        self.allButtonPanel = AllButtonPanel("All Button", self.context, self)
+        self.panels = {self.context.allButtonPanelAddr: self.allButtonPanel,
+#                       self.context.oneTouchPanelAddr: self.oneTouchPanel,
+#                       self.context.spaLinkPanelAddr: self.spaLinkPanel,
                         }
         self.panel = self.panels.values()[0]
-        self.interface = Interface("RS485", self.state, RS485Device, self)
+        self.interface = Interface("RS485", self.context, self)
 
         # get control sequences for equipment from the panel
         for equip in self.equipList:
@@ -111,10 +109,10 @@ class Pool:
                         realTime.tm_mon - poolTime.tm_mon,
                         realTime.tm_mday - poolTime.tm_mday,
                         realTime.tm_hour - poolTime.tm_hour,
-                        realTime.tm_min - poolTime.tm_min - 1)
+                        realTime.tm_min - poolTime.tm_min + 1)
             if diffTime != (0, 0, 0, 0, 0):
-                log("controller time", time.asctime(poolTime))
-                log("adjusting to", time.asctime(realTime))
+                self.context.log("controller time", time.asctime(poolTime))
+                self.context.log("adjusting to", time.asctime(realTime))
                 self.panel.adjustTime(diffTime)
 
     def setModel(self, model, rev=""):
@@ -190,8 +188,9 @@ class Equipment:
     stateEna = 2
     stateEnh = 4
 
-    def __init__(self, name, thePool, theAction=None):
+    def __init__(self, name, theContext, thePool, theAction=None):
         self.name = name
+        self.context = theContext
         self.pool = thePool
         self.action = theAction
         self.state = Equipment.stateOff
@@ -200,7 +199,7 @@ class Equipment:
         # sets the state of the equipment object, not the actual equipment
         self.state = newState
         self.pool.stateChanged = True
-        log(self.name, self.printState())
+        self.context.log(self.name, self.printState())
 
     def printState(self):
         if self.state == Equipment.stateOn: return "ON"
@@ -210,23 +209,21 @@ class Equipment:
 
     def changeState(self, newState, wait=False):
         # turns the equipment on or off
-        if debug: log(self.name, self.state, newState)
+        if self.context.debug: log(self.name, self.state, newState)
         if ((newState == Equipment.stateOn) and (self.state == Equipment.stateOff)) or\
            ((newState == Equipment.stateOff) and (self.state != Equipment.stateOff)):
             action = ActionThread(self.name+(" On" if newState else " Off"), 
                             [self.action], self.pool.state, self.pool.panel)
             action.start()
             if wait:
-#                if debug: log(self.name, "waiting", self.action.event.isSet())
+#                if self.context.debug: self.context.log(self.name, "waiting", self.action.event.isSet())
                 self.action.event.wait()
 
 class Mode(Equipment):
     # a Mode is defined by an ordered list of Equipment that is turned on or off
-    def __init__(self, name, thePool, theEquipList):
-        self.name = name
-        self.pool = thePool
+    def __init__(self, name, theContext, thePool, theEquipList):
+        Equipment.__init__(self, name, theContext, thePool)
         self.equipList = theEquipList
-        self.state = Equipment.stateOff
 
     def changeState(self, newState):
         # turns the list of equipment on or off
@@ -236,7 +233,7 @@ class Mode(Equipment):
         modeThread.start()
 
     def doMode(self):
-        if debugAction: log(self.name, "mode started", self.newState)
+        if self.context.debugAction: log(self.name, "mode started", self.newState)
         if self.newState == Equipment.stateOn:
             # turn on equipment list in order
             for equip in self.equipList:
@@ -245,8 +242,8 @@ class Mode(Equipment):
             # turn off equipment list in reverse order
              for equip in reversed(self.equipList):
                 equip.changeState(self.newState, wait=True)
-        if debugAction: log(self.name, "mode completed")
+        if self.context.debugAction: self.context.log(self.name, "mode completed")
         self.state = self.newState
-        log(self.name, self.printState())
+        self.context.log(self.name, self.printState())
                 
             

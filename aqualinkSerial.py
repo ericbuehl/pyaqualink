@@ -5,9 +5,6 @@ import sys
 import serial
 import threading
 
-from debugUtils import *
-from aqualinkConf import *
-
 # configuration
 unitId = 0
 RS232Baud = 9600
@@ -16,31 +13,31 @@ class SerialUI:
     """ Aqualink RS232 serial interface
 
     """
-    def __init__(self, theName, theState, serialDevice, thePool):
+    def __init__(self, theName, theContext, thePool):
         """Initialization.
         Open the serial port and start the read thread."""
-        self.name = theName
-        self.state = theState
+        self.name = theContext
+        self.context = theContext
         self.pool = thePool
         try:
-            if debugData: log(self.name, "opening serial port", serialDevice)
-            thePort = serial.Serial(serialDevice, baudrate=RS232Baud, 
+            if self.context.debug: self.context.log(self.name, "opening serial port", self.context.RS232Device)
+            thePort = serial.Serial(self.context.RS232Device, baudrate=RS232Baud, 
                                       bytesize=serial.EIGHTBITS, 
                                       parity=serial.PARITY_NONE, 
                                       stopbits=serial.STOPBITS_ONE)
-            readRS232Thread = RS232Thread("RS232", self.state, thePort, self.pool)
+            readRS232Thread = RS232Thread("RS232", self.context, thePort, self.pool)
             readRS232Thread.start()
         except:
-            if debugData: log(self.name, "unable to open serial port")
+            if self.context.debug: self.context.log(self.name, "unable to open serial port")
 
 class RS232Thread(threading.Thread):
     """ Message reading thread.
     """
-    def __init__(self, theName, theState, thePort, thePool):
+    def __init__(self, theName, theContext, thePort, thePool):
         """ Initialize the thread."""        
         threading.Thread.__init__(self, target=self.readData)
         self.name = theName
-        self.state = theState
+        self.context = theContext
         self.port = thePort
         self.pool = thePool
 
@@ -135,15 +132,15 @@ class RS232Thread(threading.Thread):
     def readData(self):
         """ Message handling loop.
         Read messages from the interface and process the command."""
-        if debug: log(self.name, "starting RS232 read thread")
-        while self.state.running:
+        if self.context.debug: self.context.log(self.name, "starting RS232 read thread")
+        while self.context.running:
             # read until the program state changes to not running
-            if not self.state.running: break
+            if not self.context.running: break
             msg = self.readMsg()
             if self.adapterState.echo:
                 self.sendMsg(msg)
             self.sendMsg(self.parseMsg(msg))
-        if debug: log(self.name, "terminating RS232 read thread")
+        if self.context.debug: self.context.log(self.name, "terminating RS232 read thread")
 
     def readMsg(self):
         """ Read the next message from the serial port."""
@@ -177,16 +174,16 @@ class RS232Thread(threading.Thread):
         except:
             return self.error(2)
         try:
-            if debug: log(self.name, cmd, oper, value)
+            if self.context.debug: self.context.log(self.name, cmd, oper, value)
             response = self.cmdTable[cmd](self, cmd, oper, value)
         except KeyError:
             if cmd[0:3] == "AUX":
                 auxDev = int(cmd[3:])
                 cmd = cmd[0:3]
-                if debug: log(self.name, cmd, oper, value)
+                if self.context.debug: self.context.log(self.name, cmd, oper, value)
                 response = self.auxCmd(cmd, auxdev, oper, value)
             else:
-                if debug: log(self.name, "unknown", cmd)
+                if self.context.debug: self.context.log(self.name, "unknown", cmd)
                 response = self.error(1)
         return response
 

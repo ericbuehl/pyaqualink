@@ -5,9 +5,6 @@ import serial
 import struct
 import threading
 
-from debugUtils import *
-from aqualinkConf import *
-
 # ASCII constants
 NUL = '\x00'
 DLE = '\x10'
@@ -20,14 +17,14 @@ class Interface:
     """ Aqualink serial interface
 
     """
-    def __init__(self, theName, theState, serialDevice, thePool):
+    def __init__(self, theName, theContext, thePool):
         """Initialization.
         Open the serial port and find the start of a message."""
         self.name = theName
-        self.state = theState
+        self.context = theContext
         self.pool = thePool
-        if debugData: log(self.name, "opening serial port", serialDevice)
-        self.port = serial.Serial(serialDevice, baudrate=9600, 
+        if self.context.debugData: self.context.log(self.name, "opening serial port", self.context.RS485Device)
+        self.port = serial.Serial(self.context.RS485Device, baudrate=9600, 
                                   bytesize=serial.EIGHTBITS, 
                                   parity=serial.PARITY_NONE, 
                                   stopbits=serial.STOPBITS_ONE)
@@ -36,13 +33,13 @@ class Interface:
         # skip bytes until synchronized with the start of a message
         while (self.msg[-1] != STX) or (self.msg[-2] != DLE):
             self.msg += self.port.read(1)
-            if debugRaw: self.debugRaw(self.msg[-1])
+            if self.context.debugRaw: self.debugRaw(self.msg[-1])
         self.msg = self.msg[-2:]
-        if debugData: log(self.name, "synchronized")
+        if self.context.debugData: self.context.log(self.name, "synchronized")
         # start up the read thread
-        readThread = ReadThread("Read", self.state, self.pool)
+        readThread = ReadThread("Read", self.context, self.pool)
         readThread.start()
-        log(self.name, "ready")
+        self.context.log(self.name, "ready")
           
     def readMsg(self):
         """ Read the next valid message from the serial port.
@@ -52,13 +49,13 @@ class Interface:
             dleFound = False
             # read what is probably the DLE STX
             self.msg += self.port.read(2)                   
-            if debugRaw: 
+            if self.context.debugRaw: 
                 self.debugRaw(self.msg[-2])
                 self.debugRaw(self.msg[-1])
             while (self.msg[-1] != ETX) or (not dleFound):  
                 # read until DLE ETX
                 self.msg += self.port.read(1)
-                if debugRaw: self.debugRaw(self.msg[-1])
+                if self.context.debugRaw: self.debugRaw(self.msg[-1])
                 if self.msg[-1] == DLE:                     
                     # \x10 read, tentatively is a DLE
                     dleFound = True
@@ -76,16 +73,16 @@ class Interface:
             args = self.msg[4:-3]
             checksum = self.msg[-3:-2]
             dleetx = self.msg[-2:]
-            if debugData: debugMsg = printHex(dlestx)+" "+printHex(dest)+" "+\
-                                     printHex(cmd)+" "+printHex(args)+" "+\
-                                     printHex(checksum)+" "+printHex(dleetx)
+            if self.context.debugData: debugMsg = dlestx.encode("hex")+" "+dest.encode("hex")+" "+\
+                                     cmd.encode("hex")+" "+args.encode("hex")+" "+\
+                                     checksum.encode("hex")+" "+dleetx.encode("hex")
             self.msg = ""
             # stop reading if a message with a valid checksum is read
             if self.checksum(dlestx+dest+cmd+args) == checksum:
-                if debugData: log(self.name, "-->", debugMsg)
+                if self.context.debugData: self.context.log(self.name, "-->", debugMsg)
                 return (dest, cmd, args)
             else:
-                if debugData: log(self.name, "-->", debugMsg, 
+                if self.context.debugData: self.context.log(self.name, "-->", debugMsg, 
                                   "*** bad checksum ***")
 
     def sendMsg(self, (dest, cmd, args)):
@@ -97,10 +94,10 @@ class Interface:
             # if a byte in the message has the value \x10 insert a NUL after it
             if msg[i] == DLE:
                 msg = msg[0:i+1]+NUL+msg[i+1:]
-        if debugData: log(self.name, "<--", printHex(msg[0:2]), 
-                          printHex(msg[2:3]), printHex(msg[3:4]), 
-                          printHex(msg[4:-3]), printHex(msg[-3:-2]), 
-                          printHex(msg[-2:]))
+        if self.context.debugData: self.context.log(self.name, "<--", msg[0:2].encode("hex"), 
+                          msg[2:3].encode("hex"), msg[3:4].encode("hex"), 
+                          msg[4:-3].encode("hex"), msg[-3:-2].encode("hex"), 
+                          msg[-2:].encode("hex"))
         n = self.port.write(msg)
 
     def checksum(self, msg):
@@ -111,7 +108,7 @@ class Interface:
         """ Debug raw serial data."""
         self.debugRawMsg += byte
         if len(self.debugRawMsg) == 16:
-            log(self.name, printHex(self.debugRawMsg))
+            self.context.log(self.name, self.debugRawMsg).encode("hex")
             self.debugRawMsg = ""
             
     def __del__(self):
@@ -122,11 +119,11 @@ class ReadThread(threading.Thread):
     """ Message reading thread.
 
     """
-    def __init__(self, theName, theState, thePool):
+    def __init__(self, theName, theContext, thePool):
         """ Initialize the thread."""        
         threading.Thread.__init__(self, target=self.readData)
         self.name = theName
-        self.state = theState
+        self.context = theContext
         self.pool = thePool
         self.lastDest = 0xff
         
@@ -134,14 +131,14 @@ class ReadThread(threading.Thread):
         """ Message handling loop.
         Read messages from the interface and if they are addressed to one of the
         panels, send an Ack to the controller and process the command."""
-        if debug: log(self.name, "starting read thread")
-        while self.state.running:
+        if self.context.debug: self.context.log(self.name, "starting read thread")
+        while self.context.running:
             # read until the program state changes to not running
-            if not self.state.running: break
+            if not self.context.running: break
             (dest, cmd, args) = self.pool.interface.readMsg()
             try:                         
                 # handle messages that are addressed to these panels
-                if not monitorMode:      
+                if not self.context.monitorMode:      
                     # send Ack if not passively monitoring
                     self.pool.interface.sendMsg((masterAddr,) + \
                                                 self.pool.panels[dest].getAckMsg())
@@ -157,5 +154,5 @@ class ReadThread(threading.Thread):
         for panel in self.pool.panels.values():   
             for event in panel.events:
                 event.set()
-        if debug: log(self.name, "terminating read thread")
+        if self.context.debug: self.context.log(self.name, "terminating read thread")
 

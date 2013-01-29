@@ -1,0 +1,98 @@
+body
+{
+    background-color:#424242;
+}
+
+dy {
+	background-color: #BBA389;
+	background-image: url(images/granite.png);
+	background-repeat: repeat-x;
+	padding-top: 100px;
+}
+
+h1 {
+	color:#582301;
+	font-size: 2em;
+	font-family: "Helvetica Black", Helvetica, sans-serif;
+	margin: 0;
+}
+
+h2 {
+	color: #FFFFFF;
+	font-weight: normal;
+	font-family: "Helvetica Black", Helvetica, sans-serif;
+	font-size: 1.5em;
+	border-top: 2px black solid;
+	border-bottom: 2px black solid;
+	background: url(images/granite.png) repeat;
+	padding: 0 0 2px 80px
+	margin: 0;
+}
+
+h3 {
+	color: #FFFFFF;
+	font-weight: normal;
+	font-family: "Helvetica Black", Helvetica, sans-serif;
+	font-size: 1em;
+	border-top: 2px black solid;
+	border-bottom: 2px black solid;
+	background: url(images/granite.png) repeat;
+	padding: 0 0 2px 80px
+	margin: 0;
+}
+
+a {
+	color: #122601;
+	font-weight: normal;
+	font-family: "Helvetica", Helvetica, sans-serif;
+	border-bottom: 2px white solid;
+	padding: 0 0 2px 80px
+	margin: 0;
+}
+
+p {
+	color: White;
+	font-family: "Helvetica", Helvetica, sans-serif;
+	text-align: left;
+	line-height: 150%;
+	margin-top: 2px;
+	margin-left: 80px;
+}
+
+div.temp-red {
+	color: Red;
+	font-size: 400px;
+	font-weight: bold;
+	font-family: "Helvetica", Helvetica, sans-serif;
+	text-align: left;
+	margin-top: 20px;
+	text-indent: 0px;
+}
+
+div.temp-green {
+	color: Green;
+	font-size: 400px;
+	font-weight: bold;
+	font-family: "Helvetica", Helvetica, sans-serif;
+	text-align: left;
+	margin-top: 20px;
+	text-indent: 0px;
+}
+
+div.temp-white {
+	color: White;
+	font-size: 400px;
+	font-weight: bold;
+	font-family: "Helvetica", Helvetica, sans-serif;
+	text-align: left;
+	margin-top: 20px;
+	text-indent: 0px;
+}
+
+.intro {
+	color: #6A94CC;
+	font-family: Helvetica, Helvetica, sans-serif;
+	font-size: 1.2em;
+	margin-left: 0;
+	margin-bottom: 25px;
+}

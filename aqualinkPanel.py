@@ -5,8 +5,6 @@ import struct
 import time
 import threading
 
-from debugUtils import *
-from aqualinkConf import *
 from aqualinkPool import *
 
 ########################################################################################################
@@ -19,9 +17,9 @@ class Panel:
     """
     
     # constructor
-    def __init__(self, theName, theState, thePool):
+    def __init__(self, theName, theContext, thePool):
         self.name = theName
-        self.state = theState
+        self.context = theContext
         self.pool = thePool
 
         # commands
@@ -53,7 +51,7 @@ class Panel:
     def getAckMsg(self):
         args = struct.pack("!B", self.ack)+struct.pack("!B", self.button.code)
         if self.button != self.btnNone:
-            if debugAck: log(self.name, "ack", printHex(args))
+            if self.context.debugAck: self.context.log(self.name, "ack", args.encode("hex"))
         self.button = self.btnNone
         return (struct.pack("!B", self.cmdAck.code), args)
         
@@ -63,32 +61,32 @@ class Panel:
         try:
             self.cmdTable[cmdCode](self, args)
         except KeyError:
-            if debug: log(self.name, "unknown", printHex(cmd), printHex(args))
+            if self.context.debug: self.context.log(self.name, "unknown", cmd.encode("hex"), args.encode("hex"))
 
     # probe command           
     def handleProbe(self, args):
         cmd = self.cmdProbe
-        if debug: log(self.name, cmd.name)
+        if self.context.debug: self.context.log(self.name, cmd.name)
 
     # ack command
     def handleAck(self, args):
         cmd = self.cmdAck
         if args != self.lastAck:       # only display changed values
             self.lastAck = args
-            if debugAck: log(self.name, cmd.name, printHex(args))
+            if self.context.debugAck: self.context.log(self.name, cmd.name, args.encode("hex"))
 
     # status command
     def handleStatus(self, args):
         cmd = self.cmdStatus
         if args != self.lastStatus:    # only display changed values
             self.lastStatus = args
-            if debugStatus: log(self.name, cmd.name, printHex(args))
+            if self.context.debugStatus: self.context.log(self.name, cmd.name, args.encode("hex"))
         self.statusEvent.set()
 
     # message command
     def handleMsg(self, args):
         cmd = self.cmdMsg
-        if debugMsg: log(self.name, cmd.name, printHex(args))
+        if self.context.debugMsg: self.context.log(self.name, cmd.name, args.encode("hex"))
         
 class Button:
     def __init__(self, theName, theCode):
@@ -106,26 +104,26 @@ class Command:
 ########################################################################################################
 class ActionThread(threading.Thread):
     # constructor
-    def __init__(self, theName, theSequence, theState, thePanel):
+    def __init__(self, theName, theSequence, theContext, thePanel):
         threading.Thread.__init__(self, target=self.doAction)
         self.name = theName
         self.sequence = theSequence
-        self.state = theState
+        self.context = theContext
         self.panel = thePanel
         for action in self.sequence:
             action.event.clear()
 
     def doAction(self):
-        if debugAction: log(self.name, "action started")
+        if self.context.debugAction: self.context.log(self.name, "action started")
         for action in self.sequence:
-            if not self.state.running: break
+            if not self.context.running: break
             self.panel.button = action.button # set the button to be sent to start the action
-            if debugAction: log(self.name, "button", action.button.name, "sent")
-    #        if debugAction: log(self.name, "waiting", self.action.event.isSet())
+            if self.context.debugAction: self.context.log(self.name, "button", action.button.name, "sent")
+    #        if self.context.debugAction: self.context.log(self.name, "waiting", self.action.event.isSet())
             action.event.wait()              # wait for the event that corresponds to the completion
-            if debugAction: log(self.name, "button", action.button.name, "completed")
+            if self.context.debugAction: self.context.log(self.name, "button", action.button.name, "completed")
             time.sleep(1)
-        if debugAction: log(self.name, "action completed")
+        if self.context.debugAction: self.context.log(self.name, "action completed")
 
 class Action:
     def __init__(self, theButton, theEvent):
