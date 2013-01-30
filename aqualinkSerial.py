@@ -188,9 +188,9 @@ class RS232Thread(threading.Thread):
         try:
             oper = ""
             value = ""
-            if msg[-1] == "?":      # query
+            if msg[-1] in ["?", "+"]:      # query or step
                 cmd = msg[1:-1]
-                oper = "?"
+                oper = msg[-1]
             else:
                 equal = msg.find("=")
                 if equal > 0:       # set
@@ -306,7 +306,7 @@ class RS232Thread(threading.Thread):
         return self.response(cmd, "=", str(self.pool.options))
 
     def vbatCmd(self, cmd, oper, value):
-        pass
+        return self.error(18)
 
     def ledsCmd(self, cmd, oper, value):
         return self.response(cmd, "=", "%d "*5 % struct.unpack("!BBBBB", struct.pack("!Q", self.pool.panel.lastStatus)[3:]))
@@ -320,6 +320,11 @@ class RS232Thread(threading.Thread):
                 self.equipTable[cmd].changeState(int(value), wait=True)
             else:
                 return self.error(5)
+        elif oper == "+":
+            if cmd[0:3] == "AUX":
+                return self.error(21)
+            else:
+                return self.error(3)
         return self.response(cmd, "=", self.equipState(self.equipTable[cmd].state))
 
 #    def cleanrCmd(self, cmd, oper, value):
@@ -359,13 +364,13 @@ class RS232Thread(threading.Thread):
         return self.error(32)
 
     def poolspCmd(self, cmd, oper, value):
-        pass
+        return self.error(18)
 
     def poolsp2Cmd(self, cmd, oper, value):
-        pass
+        return self.error(18)
 
     def spaspCmd(self, cmd, oper, value):
-        pass
+        return self.error(18)
 
     def pooltmpCmd(self, cmd, oper, value):
         return self.response(cmd, "=", str(self.pool.poolTemp)+self.pool.tempScale)
