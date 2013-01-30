@@ -143,30 +143,30 @@ class AllButtonPanel(Panel):
         action = ActionThread("set time", self.context, seq, self)
         action.start()
 
-#    def menu(self):
-#        if self.context.debug: self.context.log(self.name)
-#        action = Action("menu", [self.menuAction], self.context, self)
-#        action.start()
+    def menu(self):
+        if self.context.debug: self.context.log(self.name)
+        action = ActionThread("menu", self.context, [self.menuAction], self)
+        action.start()
 
-#    def left(self):
-#        if self.context.debug: self.context.log(self.name)
-#        action = Action("left", [self.leftAction], self.context, self)
-#        action.start()
+    def left(self):
+        if self.context.debug: self.context.log(self.name)
+        action = ActionThread("left", self.context, [self.leftAction], self)
+        action.start()
 
-#    def right(self):
-#        if self.context.debug: self.context.log(self.name)
-#        action = Action("right", [self.rightAction], self.context, self)
-#        action.start()
+    def right(self):
+        if self.context.debug: self.context.log(self.name)
+        action = ActionThread("right", self.context, [self.rightAction], self)
+        action.start()
 
-#    def cancel(self):
-#        if self.context.debug: self.context.log(self.name)
-#        action = Action("cancel", [self.cancelAction], self.context, self)
-#        action.start()
+    def cancel(self):
+        if self.context.debug: self.context.log(self.name)
+        action = ActionThread("cancel", self.context, [self.cancelAction], self)
+        action.start()
 
-#    def enter(self):
-#        if self.context.debug: self.context.log(self.name)
-#        action = Action("enter", [self.enterAction], self.context, self)
-#        action.start()
+    def enter(self):
+        if self.context.debug: self.context.log(self.name)
+        action = ActionThread("enter", self.context, [self.enterAction], self)
+        action.start()
 
     def getAction(self, poolEquip):
         # return the action associated with the specified equipment

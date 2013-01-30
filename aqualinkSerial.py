@@ -4,6 +4,7 @@
 import sys
 import serial
 import threading
+import struct
 
 # configuration
 unitId = 0
@@ -299,7 +300,7 @@ class RS232Thread(threading.Thread):
         return self.response(cmd, "=", self.pool.model)
 
     def opmodeCmd(self, cmd, oper, value):
-        return self.response(cmd, "=", self.pool.options)
+        return self.response(cmd, "=", self.pool.opMode)
 
     def optionsCmd(self, cmd, oper, value):
         return self.response(cmd, "=", str(self.pool.options))
@@ -308,7 +309,7 @@ class RS232Thread(threading.Thread):
         pass
 
     def ledsCmd(self, cmd, oper, value):
-        pass
+        return self.response(cmd, "=", "%d "*5 % struct.unpack("!BBBBB", struct.pack("!Q", self.pool.panel.lastStatus)[3:]))
 
     def pumploCmd(self, cmd, oper, value):
         return self.error(23)
@@ -355,7 +356,7 @@ class RS232Thread(threading.Thread):
 #        return self.response(cmd, "=", self.equipState(self.pool.heater.state))
 
     def solhtCmd(self, cmd, oper, value):
-        return self.error(23)
+        return self.error(32)
 
     def poolspCmd(self, cmd, oper, value):
         pass
@@ -376,7 +377,7 @@ class RS232Thread(threading.Thread):
         return self.response(cmd, "=", str(self.pool.airTemp)+self.pool.tempScale)
 
     def soltmpCmd(self, cmd, oper, value):
-        return self.response(cmd, "=", str(self.pool.solarTemp)+self.pool.tempScale)
+        return self.error(18)
 
     def auxCmd(self, cmd, auxDev, oper, value):
         pass
