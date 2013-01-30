@@ -123,7 +123,7 @@ class AllButtonPanel(Panel):
         self.enterAction = Action(self.btnEnter, self.msgEvent)
 
     def dupAction(self, nTimes):
-        # create a sequence containing an action duplicated n times
+        # create a sequence containing a right or left action duplicated n times
         seq = []
         if nTimes != 0:
             action = self.rightAction if nTimes > 0 else self.leftAction
@@ -132,15 +132,15 @@ class AllButtonPanel(Panel):
         return seq
             
     def adjustTime(self, timeDiff):
-    # create and execute a sequence that adjusts the time on the controller by the specified difference.
+        # create and execute a sequence that adjusts the time on the controller by the specified difference.
         if self.context.debug: self.context.log(self.name)
-        seq = [self.menuAction] + self.dupAction(3) + [self.enterAction] +\
+        seq = [self.menuAction] + self.dupAction(3) + [self.enterAction]+ [self.enterAction] +\
                self.dupAction(timeDiff[0]) + [self.enterAction] +\
                self.dupAction(timeDiff[1]) + [self.enterAction] +\
                self.dupAction(timeDiff[2]) + [self.enterAction] +\
                self.dupAction(timeDiff[3]) + [self.enterAction] +\
                self.dupAction(timeDiff[4]) + [self.enterAction]
-        action = ActionThread("set time", seq, self.context, self)
+        action = ActionThread("set time", self.context, seq, self)
         action.start()
 
 #    def menu(self):

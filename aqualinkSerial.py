@@ -16,29 +16,37 @@ class SerialUI:
     def __init__(self, theName, theContext, thePool):
         """Initialization.
         Open the serial port and start the read thread."""
-        self.name = theContext
+        self.name = theName
         self.context = theContext
         self.pool = thePool
-        try:
-            if self.context.debug: self.context.log(self.name, "opening serial port", self.context.RS232Device)
-            thePort = serial.Serial(self.context.RS232Device, baudrate=RS232Baud, 
-                                      bytesize=serial.EIGHTBITS, 
-                                      parity=serial.PARITY_NONE, 
-                                      stopbits=serial.STOPBITS_ONE)
-            readRS232Thread = RS232Thread("RS232", self.context, thePort, self.pool)
-            readRS232Thread.start()
-        except:
-            if self.context.debug: self.context.log(self.name, "unable to open serial port")
+        if self.context.RS232Device == "/dev/stdin":
+            self.context.log(self.name, "using stdin", self.context.RS232Device)
+            inPort = sys.stdin
+            outPort = sys.stdout
+        else:
+            try:
+                self.context.log(self.name, "opening RS232 port", self.context.RS232Device)
+                inPort = outPort = serial.Serial(self.context.RS232Device, baudrate=RS232Baud, 
+                                          bytesize=serial.EIGHTBITS, 
+                                          parity=serial.PARITY_NONE, 
+                                          stopbits=serial.STOPBITS_ONE)
+            except:
+                self.context.log(self.name, "unable to open serial port")
+                return
+        readRS232Thread = RS232Thread("RS232", self.context, inPort, outPort, self.pool)
+        readRS232Thread.start()
+        self.context.log(self.name, "ready")
 
 class RS232Thread(threading.Thread):
     """ Message reading thread.
     """
-    def __init__(self, theName, theContext, thePort, thePool):
+    def __init__(self, theName, theContext, inPort, outPort, thePool):
         """ Initialize the thread."""        
         threading.Thread.__init__(self, target=self.readData)
         self.name = theName
         self.context = theContext
-        self.port = thePort
+        self.inPort = inPort
+        self.outPort = outPort
         self.pool = thePool
 
         self.product = "Pool Controller Serial Adapter Emulator"
@@ -60,13 +68,13 @@ class RS232Thread(threading.Thread):
                         "VBAT": RS232Thread.vbatCmd,
                         "LEDS": RS232Thread.ledsCmd,
                         "PUMPLO": RS232Thread.pumploCmd,
-                        "PUMP": RS232Thread.pumpCmd,
-                        "CLEANR": RS232Thread.cleanrCmd,
+                        "PUMP": RS232Thread.equipCmd,
+                        "CLEANR": RS232Thread.equipCmd,
                         "WFALL": RS232Thread.wfallCmd,
-                        "SPA": RS232Thread.spaCmd,
+                        "SPA": RS232Thread.equipCmd,
                         "UNITS": RS232Thread.unitsCmd,
                         "POOLHT": RS232Thread.poolhtCmd,
-                        "SPAHT": RS232Thread.spahtCmd,
+                        "SPAHT": RS232Thread.equipCmd,
                         "SOLHT": RS232Thread.solhtCmd,
                         "POOLSP": RS232Thread.poolspCmd,
                         "POOLSP2": RS232Thread.poolsp2Cmd,
@@ -75,6 +83,15 @@ class RS232Thread(threading.Thread):
                         "SPATMP": RS232Thread.spatmpCmd,
                         "AIRTMP": RS232Thread.airtmpCmd,
                         "SOLTMP": RS232Thread.soltmpCmd,
+                        # explicit aux commands
+                        "AUX1": RS232Thread.equipCmd,
+                        "AUX2": RS232Thread.equipCmd,
+                        "AUX3": RS232Thread.equipCmd,
+                        "AUX4": RS232Thread.equipCmd,
+                        "AUX5": RS232Thread.equipCmd,
+                        "AUX6": RS232Thread.equipCmd,
+                        "AUX7": RS232Thread.equipCmd,
+                        # additional key commands
                         "MENU": RS232Thread.menuCmd,
                         "LEFT": RS232Thread.leftCmd,
                         "RIGHT": RS232Thread.rightCmd,
@@ -127,7 +144,20 @@ class RS232Thread(threading.Thread):
 
         # Initialize the state
         self.adapterState = AdapterState()
-            
+
+        # equipment dispatch table
+        self.equipTable = {"PUMP": self.pool.pump,
+                           "SPA": self.pool.spa,
+                           "CLEANR": self.pool.aux1,
+                           "AUX1": self.pool.aux1,
+                           "AUX2": self.pool.aux2,
+                           "AUX3": self.pool.aux3,
+                           "AUX4": self.pool.aux4,
+                           "AUX5": self.pool.aux5,
+                           "AUX6": self.pool.aux6,
+                           "AUX7": self.pool.aux7,
+                           "SPAHT": self.pool.heater,
+                           }
 
     def readData(self):
         """ Message handling loop.
@@ -144,12 +174,10 @@ class RS232Thread(threading.Thread):
 
     def readMsg(self):
         """ Read the next message from the serial port."""
-#        return self.port.readline().strip("\n")
-        return sys.stdin.readline().strip("\n")
+        return self.inPort.readline().strip("\n")
                                
     def sendMsg(self, msg):
-#        n = self.port.write(msg+"\n")
-        n = sys.stdout.write(msg+"\n")
+        n = self.outPort.write(msg+"\n")
         
     # parse a message and perform commands    
     def parseMsg(self, msg):
@@ -285,27 +313,27 @@ class RS232Thread(threading.Thread):
     def pumploCmd(self, cmd, oper, value):
         return self.error(23)
 
-    def pumpCmd(self, cmd, oper, value):
+    def equipCmd(self, cmd, oper, value):
         if oper == "=":
             if int(value) in range(0,2):
-                self.pool.pump.setOn(int(value), wait=True)
+                self.equipTable[cmd].changeState(int(value), wait=True)
             else:
                 return self.error(5)
-        return self.response(cmd, "=", self.equipState(self.pool.pump.state))
+        return self.response(cmd, "=", self.equipState(self.equipTable[cmd].state))
 
-    def cleanrCmd(self, cmd, oper, value):
-        return self.error(23)
+#    def cleanrCmd(self, cmd, oper, value):
+#        return self.error(23)
 
     def wfallCmd(self, cmd, oper, value):
         return self.error(23)
 
-    def spaCmd(self, cmd, oper, value):
-        if oper == "=":
-            if int(value) in range(0,2):
-                self.pool.spa.setOn(int(value), wait=True)
-            else:
-                return self.error(5)
-        return self.response(cmd, "=", self.equipState(self.pool.spa.state))
+#    def spaCmd(self, cmd, oper, value):
+#        if oper == "=":
+#            if int(value) in range(0,2):
+#                self.pool.spa.changeState(int(value), wait=True)
+#            else:
+#                return self.error(5)
+#        return self.response(cmd, "=", self.equipState(self.pool.spa.state))
 
     def unitsCmd(self, cmd, oper, value):
         if oper == "=":
@@ -318,13 +346,13 @@ class RS232Thread(threading.Thread):
     def poolhtCmd(self, cmd, oper, value):
         self.spahtCmd(self, cmd, oper, value)
 
-    def spahtCmd(self, cmd, oper, value):
-        if oper == "=":
-            if int(value) in range(0,2):
-                self.pool.heater.setOn(int(value), wait=True)
-            else:
-                return self.error(5)
-        return self.response(cmd, "=", self.equipState(self.pool.heater.state))
+#    def spahtCmd(self, cmd, oper, value):
+#        if oper == "=":
+#            if int(value) in range(0,2):
+#                self.pool.heater.changeState(int(value), wait=True)
+#            else:
+#                return self.error(5)
+#        return self.response(cmd, "=", self.equipState(self.pool.heater.state))
 
     def solhtCmd(self, cmd, oper, value):
         return self.error(23)

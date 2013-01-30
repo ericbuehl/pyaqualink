@@ -31,8 +31,6 @@ class Context:
 		self.debugWeb = False,
 		self.RS485Device = "/dev/ttyUSB0",
 		self.RS232Device = "/dev/ttyUSB1",
-		self.oneTouchPanelAddr = '\x41',
-		self.spaLinkPanelAddr = '\x21',
 		self.allButtonPanelAddr = '\x09',
 		self.httpPort = 80,
 		self.monitorMode = False,

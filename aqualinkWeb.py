@@ -29,7 +29,6 @@ class WebThread(threading.Thread):
         threading.Thread.__init__(self, target=self.webServer)
         self.name = theName
         self.context = theContext
-        self.httpPort = httpPort
         self.pool = thePool
         self.server = "aqualink"
 
@@ -54,7 +53,7 @@ class WebThread(threading.Thread):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            self.socket.bind(("", self.httpPort))
+            self.socket.bind(("", self.context.httpPort))
             if self.context.debugWeb: self.context.log(self.name, "waiting for connections")
             self.context.log(self.name, "ready")
             self.socket.listen(5)
@@ -70,7 +69,7 @@ class WebThread(threading.Thread):
             finally:
                 self.socket.close()
         except:
-            if self.context.debug: self.context.log(self.name, "unable to open port", httpPort)
+            if self.context.debug: self.context.log(self.name, "unable to open port", self.context.httpPort)
         if self.context.debug: self.context.log(self.name, "terminating web thread")
 
     # parse and handle a request            

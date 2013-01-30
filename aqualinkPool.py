@@ -5,8 +5,6 @@ import time
 
 from aqualinkInterface import *
 from aqualinkPanel import *
-#from aqualinkOneTouchPanel import *
-#from aqualinkSpaLinkPanel import *
 from aqualinkAllButtonPanel import *
 
 ########################################################################################################
@@ -74,16 +72,14 @@ class Pool:
                             [self.spa, self.heater, self.aux4, self.aux5])
         self.lightsMode = Mode("Lights Mode", self.context, self, 
                               [self.aux4, self.aux5])
+
+        # restore state
+        self.readState()
                
         # initiate interface and panels
         self.master = Panel("Master", self.context, self)
-#        self.oneTouchPanel = OneTouchPanel("One Touch", self.context, self)
-#        self.spaLinkPanel = SpaLinkPanel("SpaLink", self.context, self)
         self.allButtonPanel = AllButtonPanel("All Button", self.context, self)
-        self.panels = {self.context.allButtonPanelAddr: self.allButtonPanel,
-#                       self.context.oneTouchPanelAddr: self.oneTouchPanel,
-#                       self.context.spaLinkPanelAddr: self.spaLinkPanel,
-                        }
+        self.panels = {self.context.allButtonPanelAddr: self.allButtonPanel}
         self.panel = self.panels.values()[0]
         self.interface = Interface("RS485", self.context, self)
 
@@ -95,6 +91,31 @@ class Pool:
         cronThread = threading.Thread(target=self.doCron)
         cronThread.start()
 
+    def readState(self):
+        try:
+            inFile = open(self.stateFileName)
+            for line in inFile:
+                try:
+                    line = line[:line.find("#")].strip()
+                    if line != "":
+                        param = line.split("=")
+                        setattr(self, param[0].strip(), eval(param[1].strip()))
+                except:
+                    pass
+            inFile.close()
+        except:
+            pass
+
+    def writeState(self):
+        if self.stateChanged:
+            stateFile = open(self.stateFileName, "w")
+            stateFile.write("title = '"+self.title+"'\n")
+            stateFile.write("airTemp = "+str(self.airTemp)+"\n")
+            stateFile.write("poolTemp = "+str(self.poolTemp)+"\n")
+            stateFile.write("spaTemp = "+str(self.spaTemp)+"\n")
+            stateFile.close()
+            self.stateChanged = False
+                
     def doCron(self):
         while True:
             # check the time every hour
@@ -109,7 +130,9 @@ class Pool:
                         realTime.tm_mon - poolTime.tm_mon,
                         realTime.tm_mday - poolTime.tm_mday,
                         realTime.tm_hour - poolTime.tm_hour,
-                        realTime.tm_min - poolTime.tm_min + 1)
+                        realTime.tm_min - poolTime.tm_min - 1)
+            # need to deal with cases where changing a field rolls over the next field
+            # e.g. 3:59 incremented by 2 minutes - FIXME
             if diffTime != (0, 0, 0, 0, 0):
                 self.context.log("controller time", time.asctime(poolTime))
                 self.context.log("adjusting to", time.asctime(realTime))
@@ -120,54 +143,47 @@ class Pool:
             self.model = model
             self.rev = rev
             self.stateChanged = True
-        self.logState()        
+        self.writeState()        
 
     def setTitle(self, title):
         if title != self.title:
             self.title = title
             self.stateChanged = True
-        self.logState()        
+        self.writeState()        
 
     def setDate(self, theDate):
         if theDate != self.date:
             self.date = theDate
             self.stateChanged = True
-        self.logState()        
+        self.writeState()        
 
     def setTime(self, theTime):
         if theTime != self.time:
             self.time = theTime
             self.stateChanged = True
-        self.logState()        
+        self.writeState()        
         
     def setAirTemp(self, temp):
         if temp[0] != self.airTemp:
             self.airTemp = temp[0]
             self.tempScale = temp[1]
             self.stateChanged = True
-        self.logState()        
+        self.writeState()        
                     
     def setPoolTemp(self, temp):
         if temp[0] != self.poolTemp:
             self.poolTemp = temp[0]
             self.tempScale = temp[1]
             self.stateChanged = True
-        self.logState()        
+        self.writeState()        
         
     def setSpaTemp(self, temp):
         if temp[0] != self.spaTemp:
             self.spaTemp = temp[0]
             self.tempScale = temp[1]
             self.stateChanged = True
-        self.logState()        
+        self.writeState()        
 
-    def logState(self):
-        if self.stateChanged:
-            stateFile = open(self.stateFileName, "w")
-            stateFile.write(self.printState())
-            stateFile.close()
-            stateChanged = False
-                
     def printState(self, start="", end="\n"):
         msg  = start+"Title:      "+self.title+end
         msg += start+"Model:      "+self.model+" Rev "+self.rev+end
@@ -213,7 +229,7 @@ class Equipment:
         if ((newState == Equipment.stateOn) and (self.state == Equipment.stateOff)) or\
            ((newState == Equipment.stateOff) and (self.state != Equipment.stateOff)):
             action = ActionThread(self.name+(" On" if newState else " Off"), 
-                            [self.action], self.pool.state, self.pool.panel)
+                            self.pool.context, [self.action], self.pool.panel)
             action.start()
             if wait:
 #                if self.context.debug: self.context.log(self.name, "waiting", self.action.event.isSet())

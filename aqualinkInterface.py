@@ -23,7 +23,7 @@ class Interface:
         self.name = theName
         self.context = theContext
         self.pool = thePool
-        if self.context.debugData: self.context.log(self.name, "opening serial port", self.context.RS485Device)
+        if self.context.debugData: self.context.log(self.name, "opening RS485 port", self.context.RS485Device)
         self.port = serial.Serial(self.context.RS485Device, baudrate=9600, 
                                   bytesize=serial.EIGHTBITS, 
                                   parity=serial.PARITY_NONE, 

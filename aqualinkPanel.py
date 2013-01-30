@@ -104,11 +104,11 @@ class Command:
 ########################################################################################################
 class ActionThread(threading.Thread):
     # constructor
-    def __init__(self, theName, theSequence, theContext, thePanel):
+    def __init__(self, theName, theContext, theSequence, thePanel):
         threading.Thread.__init__(self, target=self.doAction)
         self.name = theName
-        self.sequence = theSequence
         self.context = theContext
+        self.sequence = theSequence
         self.panel = thePanel
         for action in self.sequence:
             action.event.clear()
