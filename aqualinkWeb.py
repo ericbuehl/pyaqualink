@@ -43,8 +43,16 @@ class WebThread(threading.Thread):
         self.pageTable = {"/": WebThread.statusPage,
                           "/favicon.ico": WebThread.faviconPage,
                           "/css/phone.css": WebThread.cssPage,
-                          "/spatemp": WebThread.spatempPage,
+                          "/pool": WebThread.poolPage,
+                          "/mode": WebThread.modePage,
                           }    
+
+        # mode dispatch table
+        self.modeTable = {"Lights": WebThread.lightsModePage,
+                           "Spa": WebThread.spaModePage,
+                           "Clean": WebThread.cleanModePage,
+                           }    
+
     # web server loop
     def webServer(self):
         if self.context.debug: self.context.log(self.name, "starting web thread")
@@ -52,24 +60,24 @@ class WebThread(threading.Thread):
         if self.context.debugWeb: self.context.log(self.name, "opening port", self.context.httpPort)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#        try:
+        self.socket.bind(("", self.context.httpPort))
+        if self.context.debugWeb: self.context.log(self.name, "waiting for connections")
+        self.context.log(self.name, "ready")
+        self.socket.listen(5)
+        # handle connections
         try:
-            self.socket.bind(("", self.context.httpPort))
-            if self.context.debugWeb: self.context.log(self.name, "waiting for connections")
-            self.context.log(self.name, "ready")
-            self.socket.listen(5)
-            # handle connections
-            try:
-                while self.context.running:
-                    inputs, outputs, excepts = select.select([self.socket], [], [], 1)
-                    if self.socket in inputs:
-                        (ns, addr) = self.socket.accept()
-                        name = addr[0]+":"+str(addr[1])+" -"
-                        if self.context.debugWeb: self.context.log(self.name, name, "connected")
-                        self.handleRequest(ns, addr)
-            finally:
-                self.socket.close()
-        except:
-            if self.context.debug: self.context.log(self.name, "unable to open port", self.context.httpPort)
+            while self.context.running:
+                inputs, outputs, excepts = select.select([self.socket], [], [], 1)
+                if self.socket in inputs:
+                    (ns, addr) = self.socket.accept()
+                    name = addr[0]+":"+str(addr[1])+" -"
+                    if self.context.debugWeb: self.context.log(self.name, name, "connected")
+                    self.handleRequest(ns, addr)
+        finally:
+            self.socket.close()
+#        except:
+#            if self.context.debug: self.context.log(self.name, "unable to open port", self.context.httpPort)
         if self.context.debug: self.context.log(self.name, "terminating web thread")
 
     # parse and handle a request            
@@ -77,7 +85,8 @@ class WebThread(threading.Thread):
         request = ns.recv(8192)
         if not request: return
         if self.context.debugHttp: self.context.log(self.name, "request:\n", request, "\n")
-        (verb, path, params) = parseRequest(request)
+        (verb, path, query, body) = parseRequest(request)
+        params = query.update(body)
         if self.context.debugHttp: self.context.log(self.name, "verb:", verb, "path:", path, "params:", params)
         try:
             try:
@@ -112,24 +121,12 @@ class WebThread(threading.Thread):
 
     def handlePost(self, path, params):
         if self.context.debugHttp: self.context.log(self.name, "handlePost")
-        if path == "/cleanon":
-            self.pool.cleanMode.changeState(True)
-            response = httpHeader(self.server)
-        elif path == "/cleanoff":
-            self.pool.cleanMode.changeState(False)
-            response = httpHeader(self.server)
-        elif path == "/spaon":
-            self.pool.spaMode.changeState(True)
-            response = httpHeader(self.server)
-        elif path == "/spaoff":
-            self.pool.spaMode.changeState(False)
-            response = httpHeader(self.server)
-        elif path == "/lightson":
-            self.pool.lightsMode.changeState(True)
-            response = httpHeader(self.server)
-        elif path == "/lightsoff":
-            self.pool.lightsMode.changeState(False)
-            response = httpHeader(self.server)
+        try:
+            response = self.pageTable[path](self, path, params)
+        except KeyError:
+            response = httpHeader(self.server, "404 Not Found")                    
+        except:
+            response = httpHeader(self.server, "500 Internal Server Error")
         return response
 
     def handlePut(self, path, params):
@@ -177,24 +174,59 @@ class WebThread(threading.Thread):
         response = httpHeader(self.server, contentLength=len(body)) + body
         return response
 
-    def spatempPage(self, path, params):
-        if self.context.debugHttp: self.context.log(self.name, "spatempPage")
-        html  = htmlHeader([self.pool.title], css="/css/phone.css") #refreshScript(10))
-        html += "<body>"
-        spaState = self.pool.spa.printState()
-        heaterState = self.pool.heater.printState()
-        if spaState == "ON":
-            temp = "%3d"%self.pool.spaTemp                      
-            if heaterState == "ON":
-                color = "red"
-            else:
-                color = "green"
-        else:
-            temp = "OFF"
-            color = "white"
-        html += "<div class='temp-"+color+"'>"+temp+"</div>"
-        html += "</body>"
-        html += htmlTrailer()
+    def poolPage(self, path, params):
+        if self.context.debugHttp: self.context.log(self.name, "poolPage")
+        html = htmlDocument(htmlBody(self.poolPageForm(), 
+                            [self.pool.title]), css="/css/phone.css", script=refreshScript(30))
         response = httpHeader(self.server, contentLength=len(html)) + html
         return response
+
+    def poolPageForm(self):
+        airTemp = "%3d"%self.pool.airTemp
+        airColor = "white"
+        poolTemp = "%3d"%self.pool.poolTemp
+        poolColor = "aqua"
+        if self.pool.spa.state:
+            spaTemp = "%3d"%self.pool.spaTemp                      
+            if self.pool.heater.state == "ON":
+                spaColor = "red"
+            else:
+                spaColor = "green"
+        else:
+            spaTemp = "OFF"
+            spaColor = "off"
+        lightsOn = self.pool.aux4.state or self.pool.aux5.state
+        if lightsOn:
+            lightsColor = "lights"
+            lightsState = "ON"
+        else:
+            lightsColor = "off"
+            lightsState = "OFF"
+        html = htmlForm(htmlTable([[htmlDiv("label", "Air"), htmlDiv(airColor, airTemp)],
+                          [htmlDiv("label", "Pool"), htmlDiv(poolColor, poolTemp)],
+                          [htmlInput("", "submit", "mode", "Spa", theClass="button"), htmlDiv(spaColor, spaTemp)], 
+                          [htmlInput("", "submit", "mode", "Lights", theClass="button"), htmlDiv(lightsColor, lightsState)]], 
+                          [], [540, 460]), "mode", "mode")
+        return html
+
+    def modePage(self, path, params):
+        if self.context.debugHttp: self.context.log(self.name, "modePage", params)
+        try:
+            response = self.modeTable[params["mode"]](self, path, params)
+        except KeyError:
+            response = httpHeader(self.server, "404 Not Found")                    
+        except:
+            response = httpHeader(self.server, "500 Internal Server Error")
+    
+    def lightsModePage(self, path, params):
+        if self.context.debugHttp: self.context.log(self.name, "lightsModePage")
+        return poolPage(self, path, params)
+
+    def spaModePage(self, path, params):
+        if self.context.debugHttp: self.context.log(self.name, "spaModePage")
+        return poolPage(self, path, params)
+
+    def cleanModePage(self, path, params):
+        if self.context.debugHttp: self.context.log(self.name, "cleanModePage")
+        return poolPage(self, path, params)
 

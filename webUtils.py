@@ -3,19 +3,31 @@
 # http routines
 ##################################################################
 def parseRequest(request):
-    params = {}
+    query = {}
+    body = {}
     reqLines = request.split("\n")
     reqItems = reqLines[0].split(" ")
     verb = reqItems[0]
     pathItems = reqItems[1].split("?")
     path = pathItems[0]
     if len(pathItems) > 1:
-        query = pathItems[1]
-        queryItems = query.split("&")
-        for item in queryItems:
-            part = item.split("=")
+        query = parseUrlEncoded(pathItems[1])
+    if len(reqLines) > 1:
+        for line in reqLines[1:]:
+            if line != "":
+                body.update(parseUrlEncoded(line))
+    return (verb, path, query, body)
+
+def parseUrlEncoded(query):
+    print "parseUrl:", query
+    params = {}
+    queryItems = query.split("&")
+    for item in queryItems:
+        part = item.split("=")
+        if len(part) > 1:
             params[part[0]] = part[1]
-    return (verb, path, params)
+    print "parseUrl:", params
+    return params
 
 def httpHeader(server, contentType="text/html; charset=UTF-8", contentLength=0, responseCode="200 OK"):
     response  = "HTTP/1.0 "+responseCode+"\n"
@@ -108,6 +120,12 @@ def htmlBody(body, heading=[""]):
     response += "</body>\n"
     return response
 
+def htmlDiv(theClass, text):
+    response  = "<div class="+theClass+">\n"
+    response += text
+    response += "</div>\n"
+    return response
+
 def htmlHeading(heading, level=1):
     response  = "<h"+str(level)+">"+displayLine(heading)+"</h"+str(level)+">\n"
     return response
@@ -140,13 +158,15 @@ def htmlForm(form, name, action, method="post"):
     response += "</form>\n"
     return response
 
-def htmlInput(label, inputType, name, value, size="", maxlength=""):
+def htmlInput(label, inputType, name, value, size="", maxlength="", theClass=""):
     response  = label
     response += "<input type='"+inputType+"' name='"+name+"' value='"+value+"'"
     if size != "":
         response += " size='"+size+"'"
     if maxlength != "":
         response += " maxlength='"+maxlength+"'"
+    if theClass != "":
+        response += " class='"+theClass+"'"
     response += " />"
     return response
 
