@@ -73,7 +73,7 @@ class Panel:
         cmd = self.cmdAck
         if args != self.lastAck:       # only display changed values
             self.lastAck = args
-            if self.context.debugAck: self.context.log(self.name, cmd.name, args.encode("hex"))
+            if self.context.debugAck and self.context.monitorMode: self.context.log(self.name, cmd.name, args.encode("hex"))
 
     # status command
     def handleStatus(self, args):

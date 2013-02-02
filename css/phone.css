@@ -35,9 +35,7 @@ div.red {
 	font-weight: bold;
 	font-family: "Helvetica", Helvetica, sans-serif;
 	text-align: right;
-	margin-top: 20px;
-	margin-left: 20px;
-	margin-right: 20px;
+	margin: 20px 20px 20px 20px;
 	text-indent: 0px;
 }
 
@@ -47,9 +45,7 @@ div.green {
 	font-weight: bold;
 	font-family: "Helvetica", Helvetica, sans-serif;
 	text-align: right;
-	margin-top: 20px;
-	margin-left: 20px;
-	margin-right: 20px;
+	margin: 20px 20px 20px 20px;
 	text-indent: 0px;
 }
 
@@ -59,9 +55,7 @@ div.white {
 	font-weight: bold;
 	font-family: "Helvetica", Helvetica, sans-serif;
 	text-align: right;
-	margin-top: 20px;
-	margin-left: 20px;
-	margin-right: 20px;
+	margin: 20px 20px 20px 20px;
 	text-indent: 0px;
 }
 
@@ -71,9 +65,7 @@ div.off {
 	font-weight: bold;
 	font-family: "Helvetica", Helvetica, sans-serif;
 	text-align: right;
-	margin-top: 20px;
-	margin-left: 20px;
-	margin-right: 20px;
+	margin: 20px 20px 20px 20px;
 	text-indent: 0px;
 }
 
@@ -83,9 +75,7 @@ div.aqua {
 	font-weight: bold;
 	font-family: "Helvetica", Helvetica, sans-serif;
 	text-align: right;
-	margin-top: 20px;
-	margin-left: 20px;
-	margin-right: 20px;
+	margin: 20px 20px 20px 20px;
 	text-indent: 0px;
 }
 
@@ -95,9 +85,7 @@ div.lights {
 	font-weight: bold;
 	font-family: "Helvetica", Helvetica, sans-serif;
 	text-align: right;
-	margin-top: 20px;
-	margin-left: 20px;
-	margin-right: 20px;
+	margin: 20px 20px 20px 20px;
 	text-indent: 0px;
 }
 
@@ -107,21 +95,28 @@ div.label {
 	font-weight: bold;
 	font-family: "Helvetica", Helvetica, sans-serif;
 	text-align: left;
-	margin-top: 20px;
-	margin-left: 20px;
-	margin-right: 20px;
+	margin: 20px 20px 20px 20px;
 	text-indent: 0px;
 }
 
+input {
+    -webkit-appearance: none;
+    -moz-border-radius: 0;
+    -webkit-border-radius: 0;
+    border-radius: 0;
+    text-align: left;
+}
+
 .button {
+    height: 200px;
+    width: 500px;
 	background-color: #424242;
 	color: DarkGray;
 	font-size: 160px;
 	font-weight: bold;
 	font-family: "Helvetica", Helvetica, sans-serif;
 	text-align: left;
-	margin-top: 20px;
-	margin-left: 20px;
-	margin-right: 20px;
+	margin: 20px 20px 20px 20px;
+	padding: 0 0 0 0;
 	text-indent: 0px;
 }
