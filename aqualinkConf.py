@@ -10,7 +10,7 @@ debugAck = True
 debugStatus = True
 debugAction = True
 debugMsg = False
-debugHttp = True
+debugHttp = False
 debugWeb = False
 
 RS485Device = "/dev/ttyUSB0"        # RS485 serial device to be used

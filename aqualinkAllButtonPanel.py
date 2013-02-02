@@ -186,7 +186,7 @@ class AllButtonPanel(Panel):
                 newState = (status & equip.mask) >> shift
                 oldState = (self.lastStatus & equip.mask) >> shift
                 if newState != oldState:
-                    if self.context.debugStatus: self.context.log(self.name, cmd.name, equip.equip.name, "old", "%02x"%oldState, "new", "%02x"%newState)
+                    if self.context.debugStatus: self.context.log(self.name, cmd.name, equip.equip.name, "state current", "%x"%oldState, "new", "%x"%newState)
                     # set the equipment state
                     equip.equip.setState(newState)
                     # set the event
