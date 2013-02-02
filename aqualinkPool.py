@@ -241,15 +241,20 @@ class Mode(Equipment):
         Equipment.__init__(self, name, theContext, thePool)
         self.equipList = theEquipList
 
-    def changeState(self, newState):
+    def changeState(self, newState=None):
         # turns the list of equipment on or off
-        self.newState = newState
+        if self.context.debugAction: self.context.log(self.name, self.state, newState)
+        if newState != None:
+            self.newState = newState
+        else:
+            # toggle if not specified
+            self.newState = not self.state
         # do the work in a thread so this returns synchronously
         modeThread = threading.Thread(target=self.doMode)
         modeThread.start()
 
     def doMode(self):
-        if self.context.debugAction: log(self.name, "mode started", self.newState)
+        if self.context.debugAction: self.context.log(self.name, "mode started", self.newState)
         if self.newState == Equipment.stateOn:
             # turn on equipment list in order
             for equip in self.equipList:
