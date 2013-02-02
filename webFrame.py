@@ -62,7 +62,7 @@ class WebFrame(threading.Thread):
         try:
             try:
                 (content, contentType) = self.resources[self.path](**params)
-                response = httpHeader(self.server, "200 OK", contentType=contentType) + content
+                response = httpHeader(self.server, "200 OK", contentType=contentType, contentLength=len(content)) + content
             except KeyError:
                 response = httpHeader(self.server, "404 Not Found")
             except:
@@ -126,7 +126,7 @@ def parseUrlEnc(query):
     return params
 
 def httpHeader(server, responseCode="200 OK", contentType="text/html; charset=UTF-8", contentLength=0):
-    response  = "HTTP/1.0 "+responseCode+"\n"
+    response  = "HTTP/1.1 "+responseCode+"\n"
     response += "Server: "+server+"\n"
     response += "Connection: close\n"
     if contentLength != 0:

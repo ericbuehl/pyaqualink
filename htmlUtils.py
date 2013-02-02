@@ -33,6 +33,12 @@ def htmlBody(body, heading=[""]):
     response += "</body>\n"
     return response
 
+def htmlParagraph(text):
+    response  = "<p>\n"
+    response += text
+    response += "</p>\n"
+    return response
+
 def htmlDiv(theClass, text):
     response  = "<div class="+theClass+">\n"
     response += text

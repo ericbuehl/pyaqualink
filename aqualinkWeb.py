@@ -68,7 +68,7 @@ class WebRoot(object):
 
     def statusPage(self):
         if self.context.debugHttp: self.context.log(self.name, "statusPage")
-        html = htmlDocument(htmlBody(self.pool.printState(end=htmlBreak()), 
+        html = htmlDocument(htmlBody(htmlParagraph(self.pool.printState(end=htmlBreak())), 
                             [self.pool.title]), css="/css/phone.css", script=refreshScript(30))
         return html, "text/html; charset=UTF-8"
     statusPage.exposed = True
