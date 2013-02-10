@@ -13,7 +13,7 @@ ETX = '\x03'
 
 masterAddr = '\x00'          # address of Aqualink controller
 
-class Interface:
+class Interface(object):
     """ Aqualink serial interface
 
     """

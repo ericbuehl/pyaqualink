@@ -11,7 +11,7 @@ from aqualinkPool import *
 # Base Aqualink control panel
 ########################################################################################################
 
-class Panel:
+class Panel(object):
     """
     Base Aqualink control Panel
     """
@@ -88,12 +88,12 @@ class Panel:
         cmd = self.cmdMsg
         if self.context.debugMsg: self.context.log(self.name, cmd.name, args.encode("hex"))
         
-class Button:
+class Button(object):
     def __init__(self, theName, theCode):
         self.name = theName
         self.code = theCode
         
-class Command:
+class Command(object):
     def __init__(self, theName, theCode, theArgLen):
         self.name = theName
         self.code = theCode
@@ -103,13 +103,14 @@ class Command:
 # action thread
 ########################################################################################################
 class ActionThread(threading.Thread):
-    # constructor
+    # An ActionThread executes a sequence of actions
     def __init__(self, theName, theContext, theSequence, thePanel):
         threading.Thread.__init__(self, target=self.doAction)
         self.name = theName
         self.context = theContext
         self.sequence = theSequence
         self.panel = thePanel
+        # Clear all the events before starting.
         for action in self.sequence:
             action.event.clear()
 
@@ -119,13 +120,14 @@ class ActionThread(threading.Thread):
             if not self.context.running: break
             self.panel.button = action.button # set the button to be sent to start the action
             if self.context.debugAction: self.context.log(self.name, "button", action.button.name, "sent")
-    #        if self.context.debugAction: self.context.log(self.name, "waiting", self.action.event.isSet())
             action.event.wait()              # wait for the event that corresponds to the completion
             if self.context.debugAction: self.context.log(self.name, "button", action.button.name, "completed")
             time.sleep(1)
         if self.context.debugAction: self.context.log(self.name, "action completed")
 
-class Action:
+class Action(object):
+    # An Action consists of a command and an event.
+    # When an Action is executed, the command is sent and the event is set when the command is complete.
     def __init__(self, theButton, theEvent):
         self.button = theButton
         self.event = theEvent

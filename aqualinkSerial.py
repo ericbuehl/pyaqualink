@@ -10,7 +10,7 @@ import struct
 unitId = 0
 RS232Baud = 9600
 
-class SerialUI:
+class SerialUI(object):
     """ Aqualink RS232 serial interface
 
     """
@@ -409,7 +409,7 @@ class RS232Thread(threading.Thread):
         self.pool.panel.enter()
         return self.response()
         
-class AdapterState:
+class AdapterState(object):
     def __init__(self):
         # default state
         self.echo = 0

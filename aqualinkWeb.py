@@ -13,28 +13,6 @@ class WebUI(object):
         self.pool = thePool
 
         if self.context.debug: self.context.log(self.name, "starting web thread")
-#        globalConfig = {
-#            'server.socket_port': 80,
-#            'server.socket_host': "0.0.0.0",
-#            }
-#        appConfig = {
-#            '/': {
-#                'tools.staticdir.root': "/root"},
-#            '/css': {
-#                'tools.staticdir.on': True,
-#                'tools.staticdir.dir': "css"},
-#            '/favicon.ico': {
-#                'tools.staticfile.on': True,
-#                'tools.staticfile.filename': "/root/favicon.ico"},
-#            }    
-#        cherrypy.config.update(globalConfig)
-#        root = WebRoot(self.name, self.context, self.pool)
-#        cherrypy.tree.mount(root, "/", appConfig)
-#        cherrypy.tree.mount(root.statusPage, "/status", appConfig)
-#        cherrypy.tree.mount(root.poolPage, "/pool", appConfig)
-#        cherrypy.engine.start()
-#        self.context.log(self.name, "ready")
-#        cherrypy.engine.block()
         root = WebRoot(self.name, self.context, self.pool)
         resources = {"/": root.index,
                      "/pool": root.poolPage,
@@ -64,14 +42,12 @@ class WebRoot(object):
 
     def index(self):
         return self.poolPage()
-    index.exposed = True
 
     def statusPage(self):
         if self.context.debugHttp: self.context.log(self.name, "statusPage")
         html = htmlDocument(htmlBody(htmlParagraph(self.pool.printState(end=htmlBreak())), 
                             [self.pool.title]), css="/css/phone.css", script=refreshScript(30))
         return html, "text/html; charset=UTF-8"
-    statusPage.exposed = True
 
     def poolPage(self, mode=None):
         if self.context.debugHttp: self.context.log(self.name, "poolPage")
@@ -80,7 +56,6 @@ class WebRoot(object):
         html = htmlDocument(htmlBody(self.poolPageForm(), 
                             [self.pool.title]), css="/css/phone.css", script=refreshScript(10))
         return html, "text/html; charset=UTF-8"
-    poolPage.exposed = True
 
     def poolPageForm(self):
         airTemp = "%3d"%self.pool.airTemp

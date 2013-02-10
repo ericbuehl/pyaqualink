@@ -240,7 +240,7 @@ class AllButtonPanel(Panel):
         degPos = msg.find(self.degSym)
         return (int(msg[:degPos]), msg[degPos+1:])
 
-class PanelEquip:
+class PanelEquip(object):
     def __init__(self, theEquip, theButton, theMask):
         self.equip = theEquip
         self.button = theButton

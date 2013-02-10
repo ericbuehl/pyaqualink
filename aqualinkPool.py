@@ -10,7 +10,7 @@ from aqualinkAllButtonPanel import *
 ########################################################################################################
 # state of the pool and equipment
 ########################################################################################################
-class Pool:
+class Pool(object):
     # constructor
     def __init__(self, theName, theContext):
         self.name = theName
@@ -197,7 +197,7 @@ class Pool:
                 msg += start+"%-12s"%(equip.name+":")+equip.printState()+end
         return msg
 
-class Equipment:
+class Equipment(object):
     # equipment states
     stateOff = 0
     stateOn = 1
@@ -232,7 +232,6 @@ class Equipment:
                             self.pool.context, [self.action], self.pool.panel)
             action.start()
             if wait:
-#                if self.context.debug: self.context.log(self.name, "waiting", self.action.event.isSet())
                 self.action.event.wait()
 
 class Mode(Equipment):
@@ -247,9 +246,9 @@ class Mode(Equipment):
         if newState != None:
             self.newState = newState
         else:
-            # toggle if not specified
+            # toggle if new state is not specified
             self.newState = not self.state
-        # do the work in a thread so this returns synchronously
+        # do the work in a thread so this function returns asynchronously
         modeThread = threading.Thread(target=self.doMode)
         modeThread.start()
 
