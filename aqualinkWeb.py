@@ -12,7 +12,6 @@ class WebUI(object):
         self.context = theContext
         self.pool = thePool
 
-        if self.context.debug: self.context.log(self.name, "starting web thread")
         root = WebRoot(self.name, self.context, self.pool)
         resources = {"/": root.index,
                      "/pool": root.poolPage,
@@ -23,11 +22,8 @@ class WebUI(object):
         webFrame = WebFrame("WebFrame", theContext, resources)
         webFrame.start()
         self.context.log(self.name, "ready")
-        webFrame.block()
-        if self.context.debug: self.context.log(self.name, "terminating web thread")
 
 class WebRoot(object):
-
     # constructor
     def __init__(self, theName, theContext, thePool):
         self.name = theName
@@ -64,10 +60,12 @@ class WebRoot(object):
         poolColor = "aqua"
         if self.pool.spa.state:
             spaTemp = "%3d"%self.pool.spaTemp                      
-            if self.pool.heater.state == "ON":
+            if self.pool.heater.printState() == "ON":
                 spaColor = "red"
-            else:
+            elif self.pool.heater.printState() == "ENH":
                 spaColor = "green"
+            else:
+                spaColor = "off"
         else:
             spaTemp = "OFF"
             spaColor = "off"
@@ -78,10 +76,10 @@ class WebRoot(object):
             lightsState = "OFF"
             lightsColor = "off"
         html = htmlForm(htmlTable([[htmlDiv("label", "Air"), htmlDiv(airColor, airTemp)],
-                          [htmlDiv("label", "Pool"), htmlDiv(poolColor, poolTemp)],
-                          [htmlInput("", "submit", "mode", "Spa", theClass="button"), htmlDiv(spaColor, spaTemp)], 
-                          [htmlInput("", "submit", "mode", "Lights", theClass="button"), htmlDiv(lightsColor, lightsState)]], 
-                          [], [540, 460]), "mode", "pool")
+                                   [htmlDiv("label", "Pool"), htmlDiv(poolColor, poolTemp)],
+                                   [htmlInput("", "submit", "mode", "Spa", theClass="button"), htmlDiv(spaColor, spaTemp)], 
+                                   [htmlInput("", "submit", "mode", "Lights", theClass="button"), htmlDiv(lightsColor, lightsState)]], 
+                                   [], [540, 460]), "mode", "pool")
         return html
 
     def lightsMode(self):

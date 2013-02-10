@@ -106,9 +106,9 @@ class AllButtonPanel(Panel):
                           PanelEquip(self.pool.aux1, self.btnAux1, 0x0003000000),
                           PanelEquip(self.pool.aux6, self.btnAux6, 0x0000c00000),
                           PanelEquip(self.pool.aux4, self.btnAux4, 0x0000030000),
+                          PanelEquip(self.pool.heater, self.btnSpaHtr, 0x000000000f),
                           PanelEquip(self.pool.heater, self.btnPoolHtr, 0x000000f000),
-                          PanelEquip(self.pool.heater, self.btnSolarHtr, 0x00000000f0),
-                          PanelEquip(self.pool.heater, self.btnSpaHtr, 0x000000000f)]
+                          PanelEquip(self.pool.heater, self.btnSolarHtr, 0x00000000f0)]
 
         # add equipment events to the event list
         self.events += [self.msgEvent]
