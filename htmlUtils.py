@@ -77,7 +77,7 @@ def htmlForm(form, name, action, method="post"):
     response += "</form>\n"
     return response
 
-def htmlInput(label, inputType, name, value, size="", maxlength="", theClass=""):
+def htmlInput(label, inputType, name, value, size="", maxlength="", theClass="", theSrc=""):
     response  = label
     response += "<input type='"+inputType+"' name='"+name+"' value='"+value+"'"
     if size != "":
@@ -86,6 +86,8 @@ def htmlInput(label, inputType, name, value, size="", maxlength="", theClass="")
         response += " maxlength='"+maxlength+"'"
     if theClass != "":
         response += " class='"+theClass+"'"
+    if (inputType == "image") and (theSrc != ""):
+        response += " src='"+theSrc+"'"
     response += " />"
     return response
 
@@ -106,6 +108,13 @@ def htmlImage(src, width="", height=""):
     response += ">"
     return response
 
+def htmlButton(text, **kwargs):
+    response = "<button"
+    for key in kwargs.keys():
+        response += " "+key+"='"+kwargs[key]+"'"
+    response += ">"+text+"</button>"
+    return response
+    
 def htmlAnchor(href, text, br=False):
     response  = "<a href='"+href+"'>"+text+"</a>"
     if br: response += htmlBreak()

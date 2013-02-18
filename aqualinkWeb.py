@@ -17,6 +17,8 @@ class WebUI(object):
                      "/pool": root.poolPage,
                      "/status": root.statusPage,
                      "/favicon.ico": root.faviconPage,
+                     "/images/spabutton.png": root.spaButtonImage,
+                     "/images/lightsbutton.png": root.lightsButtonImage,
                      "/css/phone.css": root.cssPage,
                      }
         webFrame = WebFrame("WebFrame", theContext, resources)
@@ -77,8 +79,8 @@ class WebRoot(object):
             lightsColor = "off"
         html = htmlForm(htmlTable([[htmlDiv("label", "Air"), htmlDiv(airColor, airTemp)],
                                    [htmlDiv("label", "Pool"), htmlDiv(poolColor, poolTemp)],
-                                   [htmlInput("", "submit", "mode", "Spa", theClass="button"), htmlDiv(spaColor, spaTemp)], 
-                                   [htmlInput("", "submit", "mode", "Lights", theClass="button"), htmlDiv(lightsColor, lightsState)]], 
+                                   [htmlButton(htmlImage("/images/spabutton.png", width=500, height=200), type="submit", name="mode", value="Spa"), htmlDiv(spaColor, spaTemp)], 
+                                   [htmlButton(htmlImage("/images/lightsbutton.png", width=500, height=200), type="submit", name="mode", value="Lights"), htmlDiv(lightsColor, lightsState)]], 
                                    [], [540, 460]), "mode", "pool")
         return html
 
@@ -97,6 +99,14 @@ class WebRoot(object):
     def faviconPage(self):
         if self.context.debugHttp: self.context.log(self.name, "faviconPage")
         return self.readFile("favicon.ico"), "image/x-icon"
+
+    def spaButtonImage(self):
+        if self.context.debugHttp: self.context.log(self.name, "buttonImage")
+        return self.readFile("images/spabutton.png"), "image/png"
+
+    def lightsButtonImage(self):
+        if self.context.debugHttp: self.context.log(self.name, "buttonImage")
+        return self.readFile("images/lightsbutton.png"), "image/png"
 
     def cssPage(self):
         if self.context.debugHttp: self.context.log(self.name, "cssPage")
