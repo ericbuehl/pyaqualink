@@ -3,9 +3,9 @@
 
 import time
 
-from aqualinkInterface import *
-from aqualinkPanel import *
-from aqualinkAllButtonPanel import *
+from interface import *
+from panel import *
+from allbuttonpanel import *
 
 ########################################################################################################
 # state of the pool and equipment

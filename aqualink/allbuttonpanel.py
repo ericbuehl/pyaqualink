@@ -5,8 +5,8 @@ import struct
 import time
 import threading
 
-from aqualinkPool import *
-from aqualinkPanel import *
+from pool import *
+from panel import *
 
 ########################################################################################################
 # All Button panel

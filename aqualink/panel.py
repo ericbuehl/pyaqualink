@@ -5,7 +5,7 @@ import struct
 import time
 import threading
 
-from aqualinkPool import *
+from pool import *
 
 ########################################################################################################
 # Base Aqualink control panel

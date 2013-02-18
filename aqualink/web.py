@@ -21,12 +21,12 @@ class WebUI(object):
         appConfig = {
             '/css': {
                 'tools.staticdir.on': True,
-                'tools.staticdir.root': BASE_DIR,
+                'tools.staticdir.root': os.path.join(BASE_DIR, "../static"),
                 'tools.staticdir.dir': "css",
             },
             '/favicon.ico': {
                 'tools.staticfile.on': True,
-                'tools.staticfile.filename': os.path.join(BASE_DIR, "favicon.ico"),
+                'tools.staticfile.filename': os.path.join(BASE_DIR, "../static/favicon.ico"),
             },
         }    
         cherrypy.config.update(globalConfig)
@@ -42,7 +42,7 @@ class WebRoot(object):
         self.name = theName
         self.context = theContext
         self.pool = thePool
-        self.env = Environment(loader=FileSystemLoader(os.path.join(BASE_DIR, 'templates')))
+        self.env = Environment(loader=FileSystemLoader(os.path.join(BASE_DIR, '../templates')))
 
         # mode dispatch table
         self.modeTable = {"Lights": WebRoot.lightsMode,
