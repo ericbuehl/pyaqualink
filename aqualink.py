@@ -32,7 +32,7 @@ class Context:
 		self.RS485Device = "/dev/ttyUSB0",
 		self.RS232Device = "/dev/ttyUSB1",
 		self.allButtonPanelAddr = '\x09',
-		self.httpPort = 80,
+		self.httpPort = 8080,
 		self.monitorMode = False,
         
     def readConfig(self):
@@ -59,12 +59,37 @@ class Context:
 ########################################################################################################
 # main routine
 ########################################################################################################
+
+class M(object):
+    """ mock object """
+    def __init__(self, d):
+        self.d = d
+    def __getattribute__(self, k):
+        return object.__getattribute__(self, "d")[k]
+
 if __name__ == "__main__":
     theContext = Context()
     try:
-        thePool = Pool("Pool", theContext)
+        thePool = M({"airTemp": 70,
+                     "poolTemp": 60,
+                     "spaTemp": 80,
+                     "title": "Mock Pool",
+                     "spa": M({
+                         "state": "ON",
+                         }),
+                     "heater": M({
+                         "state": "ON",
+                         }),
+                     "aux4": M({
+                         "state": False,
+                         }),
+                     "aux5": M({
+                         "state": False,
+                         }),
+                     })
+        #thePool = Pool("Pool", theContext)
         webUI = WebUI("WebUI", theContext, thePool)
-        serialUI = SerialUI("SerialUI", theContext, thePool)
+        #serialUI = SerialUI("SerialUI", theContext, thePool)
         while True:
             time.sleep(30)
     except KeyboardInterrupt:

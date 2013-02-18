@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang="en">
+<head>
+  <title></title>
+  <script type='text/javascript'>
+  function refresh() {
+        location.reload(true)
+  }
+  window.setInterval('refresh()',10000);
+  </script>
+  <link rel='stylesheet' type='text/css' href='/css/phone.css' />
+</head>
+
+<body>
+  <h1>Mock Pool</h1>
+
+  <form name='mode' action='pool' method='post' id="mode">
+    <table border="1" width="1000" style='table-layout:fixed'>
+      <col width="540" />
+      <col width="460" />
+
+      <tr>
+        <td>
+          <div class="label">
+            Air
+          </div>
+        </td>
+
+        <td>
+          <div class="white">
+            {{ pool.airTemp }}
+          </div>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <div class="label">
+            Pool
+          </div>
+        </td>
+
+        <td>
+          <div class="aqua">
+            {{ pool.poolTemp }}
+          </div>
+        </td>
+      </tr>
+
+      <tr>
+        <td><input type='submit' name='mode' value='Spa' class=
+        'button' /></td>
+
+        <td>
+          <div class="{{ "off" if not pool.spa.state else "red" if pool.heater.state == "ON" else "green" }}">
+            {{ pool.spaTemp if pool.spa.state else "OFF" }}
+          </div>
+        </td>
+      </tr>
+
+      <tr>
+        <td><input type='submit' name='mode' value='Lights' class=
+        'button' /></td>
+
+        <td>
+          <div class="{{ "lights" if pool.aux4.state or pool.aux5.state else "off" }}">
+            {{ "ON" if pool.aux4.state or pool.aux5.state else "OFF" }}
+          </div>
+        </td>
+      </tr>
+    </table>
+  </form>
+</body>
+</html>
+

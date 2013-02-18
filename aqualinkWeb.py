@@ -1,9 +1,11 @@
 #!/usr/bin/python
 # coding=utf-8
 
-#import cherrypy
-from webFrame import *
-from htmlUtils import *
+import os
+import cherrypy
+from jinja2 import Environment, FileSystemLoader
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 class WebUI(object):
     # constructor
@@ -12,25 +14,33 @@ class WebUI(object):
         self.context = theContext
         self.pool = thePool
 
+        globalConfig = {
+            'server.socket_port': 8080,
+            'server.socket_host': "0.0.0.0",
+            }
+        appConfig = {
+            '/css': {
+                'tools.staticdir.on': True,
+                'tools.staticdir.root': BASE_DIR,
+                'tools.staticdir.dir': "css",
+            },
+            '/favicon.ico': {
+                'tools.staticfile.on': True,
+                'tools.staticfile.filename': os.path.join(BASE_DIR, "favicon.ico"),
+            },
+        }    
+        cherrypy.config.update(globalConfig)
         root = WebRoot(self.name, self.context, self.pool)
-        resources = {"/": root.index,
-                     "/pool": root.poolPage,
-                     "/status": root.statusPage,
-                     "/favicon.ico": root.faviconPage,
-                     "/images/spabutton.png": root.spaButtonImage,
-                     "/images/lightsbutton.png": root.lightsButtonImage,
-                     "/css/phone.css": root.cssPage,
-                     }
-        webFrame = WebFrame("WebFrame", theContext, resources)
-        webFrame.start()
-        self.context.log(self.name, "ready")
+        cherrypy.tree.mount(root, "/", appConfig)
+        cherrypy.engine.start()
+        cherrypy.engine.block()
 
 class WebRoot(object):
-    # constructor
     def __init__(self, theName, theContext, thePool):
         self.name = theName
         self.context = theContext
         self.pool = thePool
+        self.env = Environment(loader=FileSystemLoader(os.path.join(BASE_DIR, 'templates')))
 
         # mode dispatch table
         self.modeTable = {"Lights": WebRoot.lightsMode,
@@ -38,85 +48,25 @@ class WebRoot(object):
                           "Clean": WebRoot.cleanMode,
                           }    
 
-    def index(self):
-        return self.poolPage()
-
+    @cherrypy.expose
     def statusPage(self):
-        if self.context.debugHttp: self.context.log(self.name, "statusPage")
-        html = htmlDocument(htmlBody(htmlParagraph(self.pool.printState(end=htmlBreak())), 
-                            [self.pool.title]), css="/css/phone.css", script=refreshScript(30))
-        return html, "text/html; charset=UTF-8"
+        return self.pool.printState(), 
 
-    def poolPage(self, mode=None):
-        if self.context.debugHttp: self.context.log(self.name, "poolPage")
+    @cherrypy.expose
+    def pool(self, mode=None):
         if mode != None:
             self.modeTable[mode](self)
-        html = htmlDocument(htmlBody(self.poolPageForm(), 
-                            [self.pool.title]), css="/css/phone.css", script=refreshScript(10))
-        return html, "text/html; charset=UTF-8"
+        t = self.env.get_template("index.html")
+        return t.render(pool=self.pool)
 
-    def poolPageForm(self):
-        airTemp = "%3d"%self.pool.airTemp
-        airColor = "white"
-        poolTemp = "%3d"%self.pool.poolTemp
-        poolColor = "aqua"
-        if self.pool.spa.state:
-            spaTemp = "%3d"%self.pool.spaTemp                      
-            if self.pool.heater.printState() == "ON":
-                spaColor = "red"
-            elif self.pool.heater.printState() == "ENH":
-                spaColor = "green"
-            else:
-                spaColor = "off"
-        else:
-            spaTemp = "OFF"
-            spaColor = "off"
-        if self.pool.aux4.state or self.pool.aux5.state:
-            lightsState = "ON"
-            lightsColor = "lights"
-        else:
-            lightsState = "OFF"
-            lightsColor = "off"
-        html = htmlForm(htmlTable([[htmlDiv("label", "Air"), htmlDiv(airColor, airTemp)],
-                                   [htmlDiv("label", "Pool"), htmlDiv(poolColor, poolTemp)],
-                                   [htmlButton(htmlImage("/images/spabutton.png", width=500, height=200), type="submit", name="mode", value="Spa"), htmlDiv(spaColor, spaTemp)], 
-                                   [htmlButton(htmlImage("/images/lightsbutton.png", width=500, height=200), type="submit", name="mode", value="Lights"), htmlDiv(lightsColor, lightsState)]], 
-                                   [], [540, 460]), "mode", "pool")
-        return html
+    index = pool
 
     def lightsMode(self):
-        if self.context.debugHttp: self.context.log(self.name, "lightsMode")
         self.pool.lightsMode.changeState()
 
     def spaMode(self):
-        if self.context.debugHttp: self.context.log(self.name, "spaMode")
         self.pool.spaMode.changeState()
 
     def cleanMode(self):
-        if self.context.debugHttp: self.context.log(self.name, "cleanMode")
         self.pool.cleanMode.changeState()
-
-    def faviconPage(self):
-        if self.context.debugHttp: self.context.log(self.name, "faviconPage")
-        return self.readFile("favicon.ico"), "image/x-icon"
-
-    def spaButtonImage(self):
-        if self.context.debugHttp: self.context.log(self.name, "buttonImage")
-        return self.readFile("images/spabutton.png"), "image/png"
-
-    def lightsButtonImage(self):
-        if self.context.debugHttp: self.context.log(self.name, "buttonImage")
-        return self.readFile("images/lightsbutton.png"), "image/png"
-
-    def cssPage(self):
-        if self.context.debugHttp: self.context.log(self.name, "cssPage")
-        return self.readFile("css/phone.css"), "text/html; charset=UTF-8"
         
-    def readFile(self, path):
-        path = path.lstrip("/")
-        if self.context.debugHttp: self.context.log(self.name, "reading", path)
-        f = open(path)
-        body = f.read()
-        f.close()
-        return body
-    
