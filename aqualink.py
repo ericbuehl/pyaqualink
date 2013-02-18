@@ -69,31 +69,25 @@ class M(object):
 
 if __name__ == "__main__":
     theContext = Context()
-    try:
-        thePool = M({"airTemp": 70,
-                     "poolTemp": 60,
-                     "spaTemp": 80,
-                     "title": "Mock Pool",
-                     "spa": M({
-                         "state": "ON",
-                         }),
-                     "heater": M({
-                         "state": "ON",
-                         }),
-                     "aux4": M({
-                         "state": False,
-                         }),
-                     "aux5": M({
-                         "state": False,
-                         }),
-                     })
-        #thePool = Pool("Pool", theContext)
-        webUI = WebUI("WebUI", theContext, thePool)
-        #serialUI = SerialUI("SerialUI", theContext, thePool)
-        while True:
-            time.sleep(30)
-    except KeyboardInterrupt:
-        theContext.running = False
-        time.sleep(1)
-        sys.exit(0)
+    thePool = M({"airTemp": 70,
+                 "poolTemp": 60,
+                 "spaTemp": 80,
+                 "title": "Mock Pool",
+                 "spa": M({
+                     "state": "ON",
+                     }),
+                 "heater": M({
+                     "state": "ON",
+                     }),
+                 "aux4": M({
+                     "state": False,
+                     }),
+                 "aux5": M({
+                     "state": False,
+                     }),
+                 })
+    #thePool = Pool("Pool", theContext)
+    #serialUI = SerialUI("SerialUI", theContext, thePool)
+    webUI = WebUI("WebUI", theContext, thePool)
+    webUI.block()
 

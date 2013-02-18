@@ -32,6 +32,8 @@ class WebUI(object):
         cherrypy.config.update(globalConfig)
         root = WebRoot(self.name, self.context, self.pool)
         cherrypy.tree.mount(root, "/", appConfig)
+
+    def block(self):
         cherrypy.engine.start()
         cherrypy.engine.block()
 
