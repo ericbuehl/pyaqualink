@@ -14,14 +14,14 @@ Dependencies
     Available from http://pyserial.sourceforge.net/
 
     To install on Arch:
-...    
+```    
     # wget https://pypi.python.org/packages/source/p/pip/pip-1.3.1.tar.gz
     # tar -xvf pip-1.3.1.tar.gz
     # cd pip-1.3.1
     # python setup.py install
     # cd ..
     # pip install pyserial
-...
+```
 2. an RS-485 serial interface
 
 Running
