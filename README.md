@@ -32,7 +32,7 @@ aqualink.log.  The debug variables control how much is written.
 
 There are two programs included:
 
-1. aqualinkRS
+### aqualinkRS.py
 
 This emulates the Aqualink RS serial adapter.  This allows you to send commands to the
 Aqualink controller from a serial RS-232 interface in human readable form.  The commands are
@@ -58,6 +58,6 @@ There are a few extra commands added that simulate the navigation buttons on the
 
 An EXIT command ends the program.
 
-2. aquaserver
+### aquaserver.py
 
 Don't run this.  It's broken.
