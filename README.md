@@ -22,7 +22,8 @@ Dependencies
     # cd ..
     # pip install pyserial
 ```
-2. an RS-485 serial interface
+2. an RS-485 serial interface device such as this 
+http://www.amazon.com/gp/product/B00241TK1S/ref=oh_details_o08_s00_i00?ie=UTF8&psc=1
 
 Running
 -------
