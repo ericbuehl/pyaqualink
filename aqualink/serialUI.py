@@ -97,7 +97,8 @@ class RS232Thread(threading.Thread):
                         "LEFT": RS232Thread.leftCmd,
                         "RIGHT": RS232Thread.rightCmd,
                         "CANCEL": RS232Thread.cancelCmd,
-                        "ENTER": RS232Thread.enterCmd
+                        "ENTER": RS232Thread.enterCmd,
+                        "EXIT": RS232Thread.exitCmd
                         }
 
         # error messages
@@ -164,13 +165,15 @@ class RS232Thread(threading.Thread):
         """ Message handling loop.
         Read messages from the interface and process the command."""
         if self.context.debug: self.context.log(self.name, "starting RS232 read thread")
+        self.sendMsg("Ready")
         while self.context.running:
             # read until the program state changes to not running
             if not self.context.running: break
             msg = self.readMsg()
-            if self.adapterState.echo:
-                self.sendMsg(msg)
-            self.sendMsg(self.parseMsg(msg))
+            if msg != "":
+                if self.adapterState.echo:
+                    self.sendMsg(msg)
+                self.sendMsg(self.parseMsg(msg))
         if self.context.debug: self.context.log(self.name, "terminating RS232 read thread")
 
     def readMsg(self):
@@ -408,6 +411,12 @@ class RS232Thread(threading.Thread):
     def enterCmd(self, cmd, oper, value):
         self.pool.panel.enter()
         return self.response()
+
+    # exit the program
+            
+    def exitCmd(self, cmd, oper, value):
+        self.context.running = False
+        return "Terminating"
         
 class AdapterState(object):
     def __init__(self):

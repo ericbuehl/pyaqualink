@@ -88,8 +88,9 @@ class Pool(object):
             equip.action = self.panel.getAction(equip)
 
         # start cron thread
-        cronThread = threading.Thread(target=self.doCron)
-        cronThread.start()
+        # this will prevent the program from exiting - FIXME
+#        cronThread = threading.Thread(target=self.doCron)
+#        cronThread.start()
 
     def readState(self):
         try:

@@ -45,7 +45,8 @@ class Interface(object):
         """ Read the next valid message from the serial port.
         Parses and returns the destination address, command, and arguments as a 
         tuple."""
-        while True:                                         
+        while self.context.running:                                         
+            if not self.context.running: break
             dleFound = False
             # read what is probably the DLE STX
             self.msg += self.port.read(2)                   
