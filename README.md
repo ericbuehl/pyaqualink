@@ -41,11 +41,12 @@ documented here http://kb.homeauto.com/redirfile.asp?id=203
 
 The program will accept commands from a specified serial port, or stdin.
 
-Most commands are implemented, except for:
+Most commands are implemented, except for some, such as:
 
-* CLEANR
-* SPA
-* SPAHT
+* PUMPLO
+* WFALL
+* SOLHT
+* SOLTMP
 
 Aux dimmer control is not implemented.
 
@@ -57,7 +58,7 @@ There are a few extra commands added that simulate the navigation buttons on the
 * CANCEL
 * ENTER
 
-An EXIT command ends the program.
+Also, an EXIT command ends the program.
 
 ### aquaserver.py
 
